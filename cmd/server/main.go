@@ -42,6 +42,7 @@ func main() {
 	{
 		v1.GET("/", welcomeHandler)
 		v1.GET("/test-error", testErrorHandler) // Test endpoint for Sentry
+		v1.GET("/test-panic", testPanicHandler) // Test panic for Sentry
 	}
 
 	// Start server
@@ -82,7 +83,7 @@ func testErrorHandler(c *gin.Context) {
 	// Test Sentry error capture
 	err := fmt.Errorf("test error for Sentry monitoring")
 	sentry.CaptureException(err)
-	
+
 	// Flush to ensure the error is sent immediately
 	sentry.Flush(2 * time.Second)
 
@@ -90,4 +91,9 @@ func testErrorHandler(c *gin.Context) {
 		"error":   "This is a test error for Sentry",
 		"message": "Check your Sentry dashboard for this error",
 	})
+}
+
+func testPanicHandler(c *gin.Context) {
+	// This will trigger a panic that should be caught by Sentry
+	panic("This is a test panic for Sentry monitoring!")
 }
