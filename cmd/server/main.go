@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -17,9 +18,11 @@ func main() {
 	if sentryDsn != "" {
 		fmt.Println("🔧 Initializing Sentry...")
 		if err := sentry.Init(sentry.ClientOptions{
-			Dsn:         sentryDsn,
-			Environment: getEnvironment(),
-			Debug:       true, // Enable debug output
+			Dsn:              sentryDsn,
+			Environment:      getEnvironment(),
+			Debug:            true, // Enable debug output
+			TracesSampleRate: 1.0,  // Capture 100% of transactions for performance monitoring
+			SampleRate:       1.0,  // Capture 100% of errors
 		}); err != nil {
 			fmt.Printf("❌ Sentry initialization failed: %v\n", err)
 		} else {
@@ -79,6 +82,9 @@ func testErrorHandler(c *gin.Context) {
 	// Test Sentry error capture
 	err := fmt.Errorf("test error for Sentry monitoring")
 	sentry.CaptureException(err)
+	
+	// Flush to ensure the error is sent immediately
+	sentry.Flush(2 * time.Second)
 
 	c.JSON(http.StatusInternalServerError, gin.H{
 		"error":   "This is a test error for Sentry",
