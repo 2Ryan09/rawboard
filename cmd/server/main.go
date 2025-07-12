@@ -80,16 +80,33 @@ func getEnvironment() string {
 }
 
 func testErrorHandler(c *gin.Context) {
-	// Test Sentry error capture
-	err := fmt.Errorf("test error for Sentry monitoring")
-	sentry.CaptureException(err)
+	// Add some context to Sentry
+	sentry.ConfigureScope(func(scope *sentry.Scope) {
+		scope.SetTag("test_type", "manual_error")
+		scope.SetLevel(sentry.LevelError)
+		scope.SetContext("request", map[string]interface{}{
+			"url":    c.Request.URL.String(),
+			"method": c.Request.Method,
+		})
+	})
+
+	// Test Sentry error capture with more context
+	err := fmt.Errorf("CRITICAL: Test error for Sentry monitoring - timestamp: %d", time.Now().Unix())
+	eventID := sentry.CaptureException(err)
+	
+	fmt.Printf("🔍 Captured Sentry error with ID: %s\n", *eventID)
 
 	// Flush to ensure the error is sent immediately
-	sentry.Flush(2 * time.Second)
+	if sentry.Flush(5 * time.Second) {
+		fmt.Println("✅ Sentry flush successful")
+	} else {
+		fmt.Println("❌ Sentry flush failed")
+	}
 
 	c.JSON(http.StatusInternalServerError, gin.H{
-		"error":   "This is a test error for Sentry",
-		"message": "Check your Sentry dashboard for this error",
+		"error":     "This is a test error for Sentry",
+		"message":   "Check your Sentry dashboard for this error",
+		"sentry_id": *eventID,
 	})
 }
 
