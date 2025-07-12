@@ -17,9 +17,14 @@ func main() {
 	sentryDsn := os.Getenv("SENTRY_DSN")
 	if sentryDsn != "" {
 		fmt.Println("🔧 Initializing Sentry...")
+		// Print first and last few characters of DSN for debugging (safely)
+		if len(sentryDsn) > 20 {
+			fmt.Printf("🔍 Using DSN: %s...%s\n", sentryDsn[:15], sentryDsn[len(sentryDsn)-10:])
+		}
 		if err := sentry.Init(sentry.ClientOptions{
 			Dsn:              sentryDsn,
 			Environment:      getEnvironment(),
+			EnableTracing:    true, // Enable performance monitoring
 			Debug:            true, // Enable debug output
 			TracesSampleRate: 1.0,  // Capture 100% of transactions for performance monitoring
 			SampleRate:       1.0,  // Capture 100% of errors
@@ -93,7 +98,7 @@ func testErrorHandler(c *gin.Context) {
 	// Test Sentry error capture with more context
 	err := fmt.Errorf("CRITICAL: Test error for Sentry monitoring - timestamp: %d", time.Now().Unix())
 	eventID := sentry.CaptureException(err)
-	
+
 	fmt.Printf("🔍 Captured Sentry error with ID: %s\n", *eventID)
 
 	// Flush to ensure the error is sent immediately
