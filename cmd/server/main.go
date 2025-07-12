@@ -15,12 +15,18 @@ func main() {
 	// Sentry initialization
 	sentryDsn := os.Getenv("SENTRY_DSN")
 	if sentryDsn != "" {
+		fmt.Println("🔧 Initializing Sentry...")
 		if err := sentry.Init(sentry.ClientOptions{
 			Dsn:         sentryDsn,
 			Environment: getEnvironment(),
+			Debug:       true, // Enable debug output
 		}); err != nil {
-			fmt.Printf("Sentry initialization failed: %v\n", err)
+			fmt.Printf("❌ Sentry initialization failed: %v\n", err)
+		} else {
+			fmt.Printf("✅ Sentry initialized successfully for environment: %s\n", getEnvironment())
 		}
+	} else {
+		fmt.Println("⚠️  SENTRY_DSN not set - Sentry monitoring disabled")
 	}
 
 	router := gin.Default()
@@ -32,6 +38,7 @@ func main() {
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("/", welcomeHandler)
+		v1.GET("/test-error", testErrorHandler) // Test endpoint for Sentry
 	}
 
 	// Start server
@@ -66,4 +73,15 @@ func getEnvironment() string {
 		return "development"
 	}
 	return env
+}
+
+func testErrorHandler(c *gin.Context) {
+	// Test Sentry error capture
+	err := fmt.Errorf("test error for Sentry monitoring")
+	sentry.CaptureException(err)
+
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"error":   "This is a test error for Sentry",
+		"message": "Check your Sentry dashboard for this error",
+	})
 }
