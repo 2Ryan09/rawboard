@@ -23,6 +23,7 @@ func main() {
 			EnableTracing:    true,
 			TracesSampleRate: 1.0,
 			SampleRate:       1.0,
+			ServerName:       "rawboard",
 		}); err != nil {
 			fmt.Printf("❌ Sentry initialization failed: %v\n", err)
 		}
