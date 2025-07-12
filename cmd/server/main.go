@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -16,25 +15,17 @@ func main() {
 	// Sentry initialization
 	sentryDsn := os.Getenv("SENTRY_DSN")
 	if sentryDsn != "" {
-		fmt.Println("🔧 Initializing Sentry...")
-		// Print first and last few characters of DSN for debugging (safely)
-		if len(sentryDsn) > 20 {
-			fmt.Printf("🔍 Using DSN: %s...%s\n", sentryDsn[:15], sentryDsn[len(sentryDsn)-10:])
-		}
+		env := getEnvironment()
+
 		if err := sentry.Init(sentry.ClientOptions{
 			Dsn:              sentryDsn,
-			Environment:      getEnvironment(),
-			EnableTracing:    true, // Enable performance monitoring
-			Debug:            true, // Enable debug output
-			TracesSampleRate: 1.0,  // Capture 100% of transactions for performance monitoring
-			SampleRate:       1.0,  // Capture 100% of errors
+			Environment:      env,
+			EnableTracing:    true,
+			TracesSampleRate: 1.0,
+			SampleRate:       1.0,
 		}); err != nil {
 			fmt.Printf("❌ Sentry initialization failed: %v\n", err)
-		} else {
-			fmt.Printf("✅ Sentry initialized successfully for environment: %s\n", getEnvironment())
 		}
-	} else {
-		fmt.Println("⚠️  SENTRY_DSN not set - Sentry monitoring disabled")
 	}
 
 	router := gin.Default()
@@ -46,8 +37,6 @@ func main() {
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("/", welcomeHandler)
-		v1.GET("/test-error", testErrorHandler) // Test endpoint for Sentry
-		v1.GET("/test-panic", testPanicHandler) // Test panic for Sentry
 	}
 
 	// Start server
@@ -82,40 +71,4 @@ func getEnvironment() string {
 		return "development"
 	}
 	return env
-}
-
-func testErrorHandler(c *gin.Context) {
-	// Add some context to Sentry
-	sentry.ConfigureScope(func(scope *sentry.Scope) {
-		scope.SetTag("test_type", "manual_error")
-		scope.SetLevel(sentry.LevelError)
-		scope.SetContext("request", map[string]interface{}{
-			"url":    c.Request.URL.String(),
-			"method": c.Request.Method,
-		})
-	})
-
-	// Test Sentry error capture with more context
-	err := fmt.Errorf("CRITICAL: Test error for Sentry monitoring - timestamp: %d", time.Now().Unix())
-	eventID := sentry.CaptureException(err)
-
-	fmt.Printf("🔍 Captured Sentry error with ID: %s\n", *eventID)
-
-	// Flush to ensure the error is sent immediately
-	if sentry.Flush(5 * time.Second) {
-		fmt.Println("✅ Sentry flush successful")
-	} else {
-		fmt.Println("❌ Sentry flush failed")
-	}
-
-	c.JSON(http.StatusInternalServerError, gin.H{
-		"error":     "This is a test error for Sentry",
-		"message":   "Check your Sentry dashboard for this error",
-		"sentry_id": *eventID,
-	})
-}
-
-func testPanicHandler(c *gin.Context) {
-	// This will trigger a panic that should be caught by Sentry
-	panic("This is a test panic for Sentry monitoring!")
 }
