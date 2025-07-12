@@ -1,13 +1,30 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/getsentry/sentry-go"
+	sentrygin "github.com/getsentry/sentry-go/gin"
 )
 
 func main() {
+	// Sentry initialization
+	sentryDsn := os.Getenv("SENTRY_DSN")
+	if sentryDsn != "" {
+		if err := sentry.Init(sentry.ClientOptions{
+			Dsn:         sentryDsn,
+			Environment: getEnvironment(),
+		}); err != nil {
+			fmt.Printf("Sentry initialization failed: %v\n", err)
+		}
+	}
+
 	router := gin.Default()
+	router.Use(sentrygin.New(sentrygin.Options{}))
 
 	// Infrastructure health check
 	router.GET("/health", healthCheck)
@@ -41,4 +58,12 @@ func welcomeHandler(c *gin.Context) {
 			"api_root": "/api/v1/",
 		},
 	})
+}
+
+func getEnvironment() string {
+	env := os.Getenv("ENVIRONMENT")
+	if env == "" {
+		return "development"
+	}
+	return env
 }
