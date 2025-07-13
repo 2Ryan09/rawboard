@@ -26,19 +26,32 @@ func (h *LeaderboardHandler) SubmitScore(c *gin.Context) {
 		return
 	}
 
+	// Validate gameID format (prevent injection attacks and ensure reasonable length)
+	if len(gameID) > 50 || len(gameID) < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Game ID must be between 1 and 50 characters"})
+		return
+	}
+
 	var req struct {
 		Initials string `json:"initials" binding:"required"`
 		Score    int64  `json:"score" binding:"required,min=0"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format: " + err.Error()})
+		return
+	}
+
+	// Additional validation for score range (prevent unrealistic scores)
+	if req.Score > 999999999 { // 9 digits max for traditional arcade feel
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Score too high - maximum allowed is 999,999,999"})
 		return
 	}
 
 	// Submit the score
 	err := h.service.SubmitScore(c.Request.Context(), gameID, req.Initials, req.Score)
 	if err != nil {
+		// Log the error for debugging but don't expose internal details
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

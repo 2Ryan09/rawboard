@@ -1,6 +1,9 @@
 package models
 
 import (
+	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -11,8 +14,71 @@ type ScoreEntry struct {
 	Timestamp time.Time `json:"timestamp"` // When this score was achieved
 }
 
+// Validate ensures the ScoreEntry meets arcade standards
+func (se *ScoreEntry) Validate() error {
+	// Normalize initials
+	se.Initials = strings.ToUpper(strings.TrimSpace(se.Initials))
+
+	if len(se.Initials) != 3 {
+		return fmt.Errorf("initials must be exactly 3 characters, got %d", len(se.Initials))
+	}
+
+	if strings.Contains(se.Initials, " ") {
+		return fmt.Errorf("initials cannot contain spaces")
+	}
+
+	if se.Score < 0 {
+		return fmt.Errorf("score cannot be negative")
+	}
+
+	if se.Score > 999999999 { // Traditional arcade max
+		return fmt.Errorf("score too high - maximum allowed is 999,999,999")
+	}
+
+	if se.Timestamp.IsZero() {
+		se.Timestamp = time.Now()
+	}
+
+	return nil
+}
+
 // Leaderboard represents a simple arcade leaderboard
 type Leaderboard struct {
 	GameID  string       `json:"game_id"`
 	Entries []ScoreEntry `json:"entries"`
+}
+
+// Validate ensures the Leaderboard meets arcade standards
+func (lb *Leaderboard) Validate() error {
+	if strings.TrimSpace(lb.GameID) == "" {
+		return fmt.Errorf("game_id cannot be empty")
+	}
+
+	if len(lb.GameID) > 50 {
+		return fmt.Errorf("game_id too long - maximum 50 characters")
+	}
+
+	if len(lb.Entries) > 10 {
+		return fmt.Errorf("leaderboard cannot have more than 10 entries")
+	}
+
+	// Validate each entry
+	for i, entry := range lb.Entries {
+		if err := entry.Validate(); err != nil {
+			return fmt.Errorf("entry %d invalid: %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+// MarshalJSON provides custom JSON marshaling with validation
+func (lb *Leaderboard) MarshalJSON() ([]byte, error) {
+	if err := lb.Validate(); err != nil {
+		return nil, fmt.Errorf("validation failed: %w", err)
+	}
+
+	// Use anonymous struct to avoid infinite recursion
+	type leaderboardAlias Leaderboard
+	return json.Marshal((*leaderboardAlias)(lb))
 }
