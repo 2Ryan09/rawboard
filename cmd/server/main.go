@@ -13,6 +13,7 @@ import (
 	"rawboard/internal/database"
 	"rawboard/internal/handlers"
 	"rawboard/internal/leaderboard"
+	"rawboard/internal/middleware"
 )
 
 func main() {
@@ -47,11 +48,20 @@ func main() {
 	// Initialize services
 	leaderboardService := leaderboard.NewService(db)
 
+	// Setup API key authentication
+	apiKey := os.Getenv("RAWBOARD_API_KEY")
+	if apiKey == "" {
+		fmt.Printf("⚠️  Warning: No RAWBOARD_API_KEY set - authentication disabled\n")
+	} else {
+		fmt.Printf("✅ API key authentication enabled\n")
+	}
+	apiKeyMiddleware := middleware.APIKeyMiddleware(apiKey)
+
 	// Infrastructure health check
 	router.GET("/health", healthCheck)
 
 	// Setup API routes
-	handlers.SetupRoutes(router, leaderboardService)
+	handlers.SetupRoutes(router, leaderboardService, apiKeyMiddleware)
 
 	// Start server
 	if err := router.Run(":8080"); err != nil {

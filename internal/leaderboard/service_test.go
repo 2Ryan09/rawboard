@@ -3,20 +3,21 @@ package leaderboard
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"rawboard/internal/database"
 )
 
 func TestLeaderboardService(t *testing.T) {
 	ctx := context.Background()
-
 	t.Run("stores and retrieves player scores correctly", func(t *testing.T) {
 		db := setupTestDatabase(t)
 		defer db.Close()
 		service := NewService(db)
 
-		gameID := "tetris_test_1"
+		gameID := "test_store_retrieve_" + generateTestID()
 		initials := "AAA"
 		score := int64(15000)
 
@@ -44,13 +45,12 @@ func TestLeaderboardService(t *testing.T) {
 			t.Errorf("Expected score %d on leaderboard, got %d", score, entry.Score)
 		}
 	})
-
 	t.Run("ranks players by highest score first", func(t *testing.T) {
 		db := setupTestDatabase(t)
 		defer db.Close()
 		service := NewService(db)
 
-		gameID := "tetris_test_2"
+		gameID := "test_ranking_" + generateTestID()
 
 		// When multiple players submit different scores
 		players := []struct {
@@ -86,13 +86,12 @@ func TestLeaderboardService(t *testing.T) {
 			}
 		}
 	})
-
 	t.Run("maintains only the top 10 highest scores", func(t *testing.T) {
 		db := setupTestDatabase(t)
 		defer db.Close()
 		service := NewService(db)
 
-		gameID := "tetris_test_3"
+		gameID := "test_top10_" + generateTestID()
 
 		// When more than 10 players submit scores
 		for i := 0; i < 15; i++ {
@@ -119,13 +118,12 @@ func TestLeaderboardService(t *testing.T) {
 			t.Errorf("Expected lowest displayed score to be %d, got %d", expectedLowestScore, lowestDisplayedScore)
 		}
 	})
-
 	t.Run("rejects invalid player initials", func(t *testing.T) {
 		db := setupTestDatabase(t)
 		defer db.Close()
 		service := NewService(db)
 
-		gameID := "tetris_test_4"
+		gameID := "test_invalid_" + generateTestID()
 		score := int64(1000)
 
 		// When players try to submit scores with invalid initials
@@ -139,13 +137,12 @@ func TestLeaderboardService(t *testing.T) {
 			}
 		}
 	})
-
 	t.Run("accepts valid three-letter initials", func(t *testing.T) {
 		db := setupTestDatabase(t)
 		defer db.Close()
 		service := NewService(db)
 
-		gameID := "tetris_test_5"
+		gameID := "test_valid_" + generateTestID()
 		score := int64(1000)
 
 		// When a player submits a score with valid 3-letter initials
@@ -159,24 +156,27 @@ func TestLeaderboardService(t *testing.T) {
 			}
 		}
 	})
-
 	t.Run("keeps separate leaderboards for different games", func(t *testing.T) {
 		db := setupTestDatabase(t)
 		defer db.Close()
 		service := NewService(db)
 
+		testID := generateTestID()
+		tetrisGameID := "tetris_" + testID
+		snakeGameID := "snake_" + testID
+
 		// When players submit scores to different games
-		service.SubmitScore(ctx, "tetris_test_6", "TET", 1000)
-		service.SubmitScore(ctx, "snake_test_6", "SNK", 2000)
-		service.SubmitScore(ctx, "tetris_test_6", "TE2", 1500)
+		service.SubmitScore(ctx, tetrisGameID, "TET", 1000)
+		service.SubmitScore(ctx, snakeGameID, "SNK", 2000)
+		service.SubmitScore(ctx, tetrisGameID, "TE2", 1500)
 
 		// Then each game should have its own leaderboard
-		tetrisBoard, err := service.GetLeaderboard(ctx, "tetris_test_6")
+		tetrisBoard, err := service.GetLeaderboard(ctx, tetrisGameID)
 		if err != nil {
 			t.Fatalf("Failed to get tetris leaderboard: %v", err)
 		}
 
-		snakeBoard, err := service.GetLeaderboard(ctx, "snake_test_6")
+		snakeBoard, err := service.GetLeaderboard(ctx, snakeGameID)
 		if err != nil {
 			t.Fatalf("Failed to get snake leaderboard: %v", err)
 		}
@@ -206,4 +206,8 @@ func setupTestDatabase(t *testing.T) database.DB {
 		t.Fatalf("Failed to connect to test database: %v", err)
 	}
 	return db
+}
+
+func generateTestID() string {
+	return fmt.Sprintf("%d_%d", time.Now().Unix(), rand.Intn(10000))
 }
