@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # Valkey
+  valkey:
+    image: valkey/valkey:8.0-alpine
+    container_name: rawboard-valkey-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_dev_data:/data
+    command: valkey-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Rawboard
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rawboard-app-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - VALKEY_URI=redis://valkey:6379
+      - ENVIRONMENT=development
+    depends_on:
+      valkey:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  valkey_dev_data:
+    driver: local
