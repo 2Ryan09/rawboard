@@ -9,6 +9,10 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
+
+	"rawboard/internal/database"
+	"rawboard/internal/handlers"
+	"rawboard/internal/leaderboard"
 )
 
 func main() {
@@ -32,13 +36,22 @@ func main() {
 	router := gin.Default()
 	router.Use(sentrygin.New(sentrygin.Options{}))
 
+	// Initialize database
+	db, err := database.NewValkeyDB()
+	if err != nil {
+		fmt.Printf("❌ Database initialization failed: %v\n", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	// Initialize services
+	leaderboardService := leaderboard.NewService(db)
+
 	// Infrastructure health check
 	router.GET("/health", healthCheck)
 
-	v1 := router.Group("/api/v1")
-	{
-		v1.GET("/", welcomeHandler)
-	}
+	// Setup API routes
+	handlers.SetupRoutes(router, leaderboardService)
 
 	// Start server
 	if err := router.Run(":8080"); err != nil {
@@ -50,19 +63,6 @@ func healthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "healthy",
 		"service": "rawboard",
-	})
-}
-
-func welcomeHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message":     "Welcome to Rawboard Arcade API!",
-		"service":     "rawboard-arcade",
-		"version":     "1.0.0",
-		"api_version": "v1",
-		"endpoints": gin.H{
-			"health":   "/health",
-			"api_root": "/api/v1/",
-		},
 	})
 }
 
