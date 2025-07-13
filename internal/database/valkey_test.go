@@ -2,15 +2,10 @@ package database
 
 import (
 	"context"
-	"os"
 	"testing"
 )
 
 func TestDatabaseOperations(t *testing.T) {
-	if !isDatabaseAvailable() {
-		t.Skip("Skipping database tests - no database available")
-	}
-
 	db, err := NewValkeyDB()
 	if err != nil {
 		t.Fatalf("Failed to connect to database: %v", err)
@@ -69,18 +64,4 @@ func TestDatabaseOperations(t *testing.T) {
 			t.Errorf("Should get updated value %q, got %q", newValue, got)
 		}
 	})
-}
-
-func isDatabaseAvailable() bool {
-	if os.Getenv("SKIP_DB_TESTS") != "" {
-		return false
-	}
-
-	db, err := NewValkeyDB()
-	if err != nil {
-		return false
-	}
-	defer db.Close()
-
-	return db.Ping(context.Background()) == nil
 }
