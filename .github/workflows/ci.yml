@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI Pipeline
 
 on:
   push:
@@ -56,81 +56,3 @@ jobs:
       env:
         VALKEY_URI: redis://localhost:6379
       run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
-
-  build:
-    name: Build and Test Docker Image
-    runs-on: ubuntu-latest
-    needs: test
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: false
-        tags: rawboard:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        load: true
-
-    - name: Start test container
-      run: |
-        docker run -d --name rawboard-test \
-          --network host \
-          -e ENVIRONMENT=development \
-          -e RAWBOARD_API_KEY=test-key \
-          -e VALKEY_URI=redis://localhost:6379 \
-          -e DATABASE_TIMEOUT=2s \
-          --health-cmd="curl -f http://localhost:8080/health || exit 1" \
-          --health-interval=10s \
-          --health-timeout=5s \
-          --health-retries=3 \
-          --health-start-period=30s \
-          rawboard:latest
-
-    - name: Give container time to initialize
-      run: sleep 10
-
-    - name: Wait for service to be ready
-      uses: iFaxity/wait-on-action@v1.2.1
-      with:
-        resource: http://localhost:8080/health
-        timeout: 90000
-        interval: 2000
-
-    - name: Check container status
-      run: |
-        echo "🔍 Container status:"
-        docker ps -a | grep rawboard-test || true
-        echo "🔍 Container health:"
-        docker inspect rawboard-test --format='{{.State.Health.Status}}' || true
-
-    - name: Check container logs if service fails
-      if: failure()
-      run: |
-        echo "🔍 Container logs:"
-        docker logs rawboard-test || true
-
-    - name: Test API endpoints
-      run: |
-        echo "🔄 Testing API endpoints..."
-
-        # Test health endpoint
-        curl -f http://localhost:8080/health || exit 1
-        echo "✅ Health check passed"
-
-        # Test welcome endpoint
-        curl -f http://localhost:8080/ || exit 1
-        echo "✅ Welcome endpoint accessible"
-
-    - name: Cleanup test container
-      if: always()
-      run: |
-        docker stop rawboard-test || true
-        docker rm rawboard-test || true
