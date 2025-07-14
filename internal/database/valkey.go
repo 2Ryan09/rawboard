@@ -20,18 +20,15 @@ func NewValkeyDB() (*ValkeyDB, error) {
 		uri = "redis://localhost:6379"
 	}
 
-	// Debug: Log the host being connected to (without credentials)
 	opts, err := redis.ParseURL(uri)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Valkey URI: %w", err)
 	}
-	
-	fmt.Printf("🔗 Connecting to Redis host: %s:%s\n", opts.Addr, opts.Network)
 
-	// Set reasonable timeouts for CI/testing environments
-	opts.DialTimeout = 2 * time.Second
-	opts.ReadTimeout = 2 * time.Second
-	opts.WriteTimeout = 2 * time.Second
+	// Set reasonable timeouts for cloud deployments
+	opts.DialTimeout = 5 * time.Second
+	opts.ReadTimeout = 5 * time.Second
+	opts.WriteTimeout = 5 * time.Second
 
 	client := redis.NewClient(opts)
 
