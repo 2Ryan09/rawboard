@@ -211,13 +211,13 @@ func setupTestDatabase(t *testing.T) database.DB {
 	if err != nil {
 		t.Skip("Skipping test - failed to connect to database")
 	}
-	
+
 	// Test the connection
 	ctx := context.Background()
 	if err := db.Ping(ctx); err != nil {
 		t.Skip("Skipping test - database connection failed")
 	}
-	
+
 	return db
 }
 

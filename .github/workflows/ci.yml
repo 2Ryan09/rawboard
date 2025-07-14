@@ -82,9 +82,11 @@ jobs:
     - name: Start test container
       run: |
         docker run -d --name rawboard-test \
-          -p 8080:8080 \
+          --network host \
           -e ENVIRONMENT=development \
           -e RAWBOARD_API_KEY=test-key \
+          -e VALKEY_URI=redis://localhost:6379 \
+          -e DATABASE_TIMEOUT=2s \
           --health-cmd="curl -f http://localhost:8080/health || exit 1" \
           --health-interval=10s \
           --health-timeout=5s \
@@ -92,11 +94,28 @@ jobs:
           --health-start-period=30s \
           rawboard:latest
 
+    - name: Give container time to initialize
+      run: sleep 10
+
     - name: Wait for service to be ready
       uses: iFaxity/wait-on-action@v1.2.1
       with:
         resource: http://localhost:8080/health
-        timeout: 60000
+        timeout: 90000
+        interval: 2000
+
+    - name: Check container status
+      run: |
+        echo "🔍 Container status:"
+        docker ps -a | grep rawboard-test || true
+        echo "🔍 Container health:"
+        docker inspect rawboard-test --format='{{.State.Health.Status}}' || true
+
+    - name: Check container logs if service fails
+      if: failure()
+      run: |
+        echo "🔍 Container logs:"
+        docker logs rawboard-test || true
 
     - name: Test API endpoints
       run: |

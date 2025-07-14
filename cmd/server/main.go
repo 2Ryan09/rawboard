@@ -46,16 +46,33 @@ func main() {
 	router.Use(sentrygin.New(sentrygin.Options{}))
 
 	// Initialize database
+	fmt.Printf("🔌 Attempting database connection...\n")
 	db, err := database.NewValkeyDB()
 	if err != nil {
-		fmt.Printf("❌ Database initialization failed: %v\n", err)
-		os.Exit(1)
+		if getEnvironment() == "production" {
+			fmt.Printf("❌ Database initialization failed: %v\n", err)
+			os.Exit(1)
+		} else {
+			fmt.Printf("⚠️  Warning: Database initialization failed: %v\n", err)
+			fmt.Printf("⚠️  Continuing in development mode without database\n")
+			db = nil
+		}
+	} else {
+		fmt.Printf("✅ Database connected\n")
 	}
-	defer db.Close()
-	fmt.Printf("✅ Database connected\n")
+	if db != nil {
+		defer db.Close()
+	}
 
 	// Initialize services
-	leaderboardService := leaderboard.NewService(db)
+	var leaderboardService *leaderboard.Service
+	if db != nil {
+		leaderboardService = leaderboard.NewService(db)
+	} else {
+		// In development mode without database, create a mock service
+		fmt.Printf("⚠️  Creating mock leaderboard service (database unavailable)\n")
+		leaderboardService = nil
+	}
 
 	// Setup API key authentication
 	apiKey := os.Getenv("RAWBOARD_API_KEY")
@@ -82,16 +99,31 @@ func main() {
 	v1 := router.Group("/api/v1")
 
 	// Initialize handlers
-	leaderboardHandler := handlers.NewLeaderboardHandler(leaderboardService)
+	var leaderboardHandler *handlers.LeaderboardHandler
+	if leaderboardService != nil {
+		leaderboardHandler = handlers.NewLeaderboardHandler(leaderboardService)
+	}
 
 	// Public routes (no authentication required)
-	v1.GET("/games/:gameId/leaderboard", leaderboardHandler.GetLeaderboard)
+	if leaderboardHandler != nil {
+		v1.GET("/games/:gameId/leaderboard", leaderboardHandler.GetLeaderboard)
+	} else {
+		v1.GET("/games/:gameId/leaderboard", func(c *gin.Context) {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "leaderboard service unavailable"})
+		})
+	}
 
 	// Protected routes (API key required)
 	protected := v1.Group("/games/:gameId")
 	protected.Use(apiKeyMiddleware)
 	{
-		protected.POST("/scores", leaderboardHandler.SubmitScore)
+		if leaderboardHandler != nil {
+			protected.POST("/scores", leaderboardHandler.SubmitScore)
+		} else {
+			protected.POST("/scores", func(c *gin.Context) {
+				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "leaderboard service unavailable"})
+			})
+		}
 	}
 
 	// Start server

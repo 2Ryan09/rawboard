@@ -10,6 +10,14 @@
 *.so
 *.dylib
 
+# Go build output
+# Built binary files (common names)
+/server
+/rawboard
+/main
+/cmd/server/server
+/cmd/server/main
+
 # Test binary, built with `go test -c`
 *.test
 

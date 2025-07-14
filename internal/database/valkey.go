@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -24,7 +25,22 @@ func NewValkeyDB() (*ValkeyDB, error) {
 		return nil, fmt.Errorf("failed to parse Valkey URI: %w", err)
 	}
 
+	// Set reasonable timeouts for CI/testing environments
+	opts.DialTimeout = 2 * time.Second
+	opts.ReadTimeout = 2 * time.Second
+	opts.WriteTimeout = 2 * time.Second
+
 	client := redis.NewClient(opts)
+
+	// Test connection with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if err := client.Ping(ctx).Err(); err != nil {
+		client.Close()
+		return nil, fmt.Errorf("failed to connect to Valkey: %w", err)
+	}
+
 	return &ValkeyDB{client: client}, nil
 }
 
