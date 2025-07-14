@@ -9,9 +9,9 @@ import (
 
 // ScoreEntry represents a simple arcade-style score entry
 type ScoreEntry struct {
-	Initials  string    `json:"initials"`  // Three letter initials (e.g., "AAA")
-	Score     int64     `json:"score"`     // Player's score
-	Timestamp time.Time `json:"timestamp"` // When this score was achieved
+	Initials  string    `json:"initials" example:"AAA"`                       // Three letter initials (e.g., "AAA")
+	Score     int64     `json:"score" example:"12500"`                        // Player's score
+	Timestamp time.Time `json:"timestamp" example:"2025-07-13T15:30:00.000Z"` // When this score was achieved
 }
 
 // Validate ensures the ScoreEntry meets arcade standards
@@ -44,8 +44,8 @@ func (se *ScoreEntry) Validate() error {
 
 // Leaderboard represents a simple arcade leaderboard
 type Leaderboard struct {
-	GameID  string       `json:"game_id"`
-	Entries []ScoreEntry `json:"entries"`
+	GameID  string       `json:"game_id" example:"pacman"` // Unique identifier for the game
+	Entries []ScoreEntry `json:"entries"`                  // Top scores (max 10, sorted by score desc)
 }
 
 // Validate ensures the Leaderboard meets arcade standards

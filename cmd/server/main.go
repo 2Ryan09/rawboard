@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -31,7 +32,14 @@ func main() {
 			ServerName:       "rawboard",
 		}); err != nil {
 			fmt.Printf("❌ Sentry initialization failed: %v\n", err)
+		} else {
+			fmt.Printf("✅ Sentry monitoring enabled\n")
 		}
+	}
+
+	// Set Gin mode based on environment
+	if getEnvironment() == "production" {
+		gin.SetMode(gin.ReleaseMode)
 	}
 
 	router := gin.Default()
@@ -44,6 +52,7 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+	fmt.Printf("✅ Database connected\n")
 
 	// Initialize services
 	leaderboardService := leaderboard.NewService(db)
@@ -51,7 +60,13 @@ func main() {
 	// Setup API key authentication
 	apiKey := os.Getenv("RAWBOARD_API_KEY")
 	if apiKey == "" {
+		if getEnvironment() == "production" {
+			fmt.Printf("❌ FATAL: API key is required in production environment\n")
+			fmt.Printf("❌ Please set the RAWBOARD_API_KEY environment variable\n")
+			os.Exit(1)
+		}
 		fmt.Printf("⚠️  Warning: No RAWBOARD_API_KEY set - authentication disabled\n")
+		fmt.Printf("⚠️  This is only allowed in development mode\n")
 	} else {
 		fmt.Printf("✅ API key authentication enabled\n")
 	}
@@ -60,20 +75,48 @@ func main() {
 	// Infrastructure health check
 	router.GET("/health", healthCheck)
 
-	// Setup API routes
-	handlers.SetupRoutes(router, leaderboardService, apiKeyMiddleware)
+	// Welcome endpoint with API documentation
+	router.GET("/", apiWelcomeHandler)
+
+	// API routes
+	v1 := router.Group("/api/v1")
+
+	// Initialize handlers
+	leaderboardHandler := handlers.NewLeaderboardHandler(leaderboardService)
+
+	// Public routes (no authentication required)
+	v1.GET("/games/:gameId/leaderboard", leaderboardHandler.GetLeaderboard)
+
+	// Protected routes (API key required)
+	protected := v1.Group("/games/:gameId")
+	protected.Use(apiKeyMiddleware)
+	{
+		protected.POST("/scores", leaderboardHandler.SubmitScore)
+	}
 
 	// Start server
+	fmt.Printf("🚀 Starting Rawboard server on port 8080\n")
+	fmt.Printf("🎮 Traditional arcade leaderboard service ready!\n")
+
 	if err := router.Run(":8080"); err != nil {
-		panic("Failed to start server: " + err.Error())
+		fmt.Printf("❌ Server failed to start: %v\n", err)
+		os.Exit(1)
 	}
 }
 
 func healthCheck(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"status":  "healthy",
-		"service": "rawboard",
-	})
+	response := handlers.NewHealthResponse(
+		"healthy",
+		"rawboard",
+		"1.0.0",
+		time.Now().UTC().Format(time.RFC3339),
+	)
+	c.JSON(http.StatusOK, response)
+}
+
+func apiWelcomeHandler(c *gin.Context) {
+	response := handlers.NewWelcomeResponse()
+	c.JSON(http.StatusOK, response)
 }
 
 func getEnvironment() string {

@@ -11,7 +11,7 @@ linters:
     - gofmt          # Format code
     - goimports      # Format imports
     - govet          # Go vet
-    
+
     # Code quality
     - errcheck       # Check for unhandled errors
     - gosimple       # Simplify code
@@ -19,15 +19,15 @@ linters:
     - staticcheck    # Advanced static analysis
     - unused         # Find unused code
     - misspell       # Fix spelling mistakes
-    
+
     # Style and best practices
     - gci            # Control Go package import order and make it always deterministic
     - revive         # Replacement for golint
     - stylecheck     # Style checker
-    
+
     # Security
     - gosec          # Security issues
-    
+
     # Performance
     - prealloc       # Suggest slice preallocation
 
@@ -38,7 +38,7 @@ linters-settings:
       - default          # Third-party packages
       - localmodule      # Local project packages
     skip-generated: true
-  
+
   revive:
     rules:
       - name: exported

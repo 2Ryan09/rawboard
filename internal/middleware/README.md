@@ -30,11 +30,11 @@ go run cmd/server/main.go
 # Get leaderboard - no auth required
 curl http://localhost:8080/api/v1/games/tetris/leaderboard
 
-# Health check - no auth required  
+# Health check - no auth required
 curl http://localhost:8080/health
 
-# API documentation - no auth required
-curl http://localhost:8080/api/v1/
+# Welcome page - no auth required
+curl http://localhost:8080/
 ```
 
 ### Protected Endpoints (API Key Required)
@@ -91,7 +91,9 @@ const getLeaderboard = async (gameId) => {
 ```json
 {
   "error": "API key required",
-  "message": "Please provide API key in X-API-Key header or Authorization: Bearer <key>"
+  "details": {
+    "message": "Please provide API key in X-API-Key header or Authorization: Bearer <key>"
+  }
 }
 ```
 

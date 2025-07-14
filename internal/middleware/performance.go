@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"rawboard/internal/handlers"
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 )
@@ -51,10 +53,9 @@ func RateLimitMiddleware(config RateLimitConfig) gin.HandlerFunc {
 		}
 
 		if !limiter.Allow() {
-			c.JSON(429, gin.H{
-				"error":       "Rate limit exceeded",
+			c.JSON(429, handlers.NewErrorResponse("Rate limit exceeded", map[string]interface{}{
 				"retry_after": "1s",
-			})
+			}))
 			c.Abort()
 			return
 		}

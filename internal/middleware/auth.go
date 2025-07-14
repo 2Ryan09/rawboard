@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strings"
 
+	"rawboard/internal/handlers"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,18 +31,15 @@ func APIKeyMiddleware(validAPIKey string) gin.HandlerFunc {
 
 		// Validate API key
 		if apiKey == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error":   "API key required",
+			c.JSON(http.StatusUnauthorized, handlers.NewErrorResponse("API key required", map[string]interface{}{
 				"message": "Please provide API key in X-API-Key header or Authorization: Bearer <key>",
-			})
+			}))
 			c.Abort()
 			return
 		}
 
 		if apiKey != validAPIKey {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid API key",
-			})
+			c.JSON(http.StatusUnauthorized, handlers.NewErrorResponse("Invalid API key"))
 			c.Abort()
 			return
 		}
