@@ -11,6 +11,17 @@ jobs:
     name: Test and Quality Checks
     runs-on: ubuntu-latest
 
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - uses: actions/checkout@v4
 
@@ -42,6 +53,8 @@ jobs:
         go-package: './...'
 
     - name: Run tests with coverage
+      env:
+        VALKEY_URI: redis://localhost:6379
       run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
   build:

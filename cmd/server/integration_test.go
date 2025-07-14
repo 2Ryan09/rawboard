@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -30,6 +31,12 @@ func TestAPIKeyIntegration(t *testing.T) {
 		t.Skip("Skipping integration tests - no database available")
 	}
 	defer db.Close()
+
+	// Test the connection
+	ctx := context.Background()
+	if err := db.Ping(ctx); err != nil {
+		t.Skip("Skipping integration tests - database connection failed")
+	}
 
 	// Setup services
 	leaderboardService := leaderboard.NewService(db)
