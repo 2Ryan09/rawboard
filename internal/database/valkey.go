@@ -14,10 +14,27 @@ type ValkeyDB struct {
 }
 
 func NewValkeyDB() (*ValkeyDB, error) {
-	// Get connection URI from environment
+	// Get connection URI from environment - try multiple common environment variables
 	uri := os.Getenv("VALKEY_URI")
 	if uri == "" {
-		uri = "redis://localhost:6379"
+		uri = os.Getenv("REDIS_URL")
+	}
+	if uri == "" {
+		uri = os.Getenv("DATABASE_URL")
+	}
+	if uri == "" {
+		// Try building from VALKEY_URL or component parts
+		if valkeyURL := os.Getenv("VALKEY_URL"); valkeyURL != "" {
+			uri = "redis://" + valkeyURL
+		} else if host := os.Getenv("REDIS_HOST"); host != "" {
+			port := os.Getenv("REDIS_PORT")
+			if port == "" {
+				port = "6379"
+			}
+			uri = "redis://" + host + ":" + port
+		} else {
+			uri = "redis://localhost:6379"
+		}
 	}
 
 	opts, err := redis.ParseURL(uri)

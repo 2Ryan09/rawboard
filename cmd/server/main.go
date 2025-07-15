@@ -41,34 +41,19 @@ func main() {
 		fmt.Printf("✅ Bugsnag monitoring enabled\n")
 	}
 
-	// Initialize database
+	// Initialize database - required for operation
 	fmt.Printf("🔌 Attempting database connection...\n")
 	db, err := database.NewValkeyDB()
 	if err != nil {
-		if getEnvironment() == "production" {
-			fmt.Printf("❌ Database initialization failed: %v\n", err)
-			os.Exit(1)
-		} else {
-			fmt.Printf("⚠️  Warning: Database initialization failed: %v\n", err)
-			fmt.Printf("⚠️  Continuing in development mode without database\n")
-			db = nil
-		}
-	} else {
-		fmt.Printf("✅ Database connected\n")
+		fmt.Printf("❌ Database initialization failed: %v\n", err)
+		fmt.Printf("❌ Rawboard requires a Redis/Valkey database to operate\n")
+		os.Exit(1)
 	}
-	if db != nil {
-		defer db.Close()
-	}
+	fmt.Printf("✅ Database connected\n")
+	defer db.Close()
 
 	// Initialize services
-	var leaderboardService *leaderboard.Service
-	if db != nil {
-		leaderboardService = leaderboard.NewService(db)
-	} else {
-		// In development mode without database, create a mock service
-		fmt.Printf("⚠️  Creating mock leaderboard service (database unavailable)\n")
-		leaderboardService = nil
-	}
+	leaderboardService := leaderboard.NewService(db)
 
 	// Setup API key authentication
 	apiKey := os.Getenv("RAWBOARD_API_KEY")

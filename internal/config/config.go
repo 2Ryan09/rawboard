@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -36,8 +37,8 @@ func Load() (*Config, error) {
 		Port:        getEnv("PORT", "8080"),
 		Environment: getEnv("ENVIRONMENT", "development"),
 
-		// Database defaults
-		DatabaseURL:     getEnv("DATABASE_URL", "localhost:6379"),
+		// Database defaults - check multiple common environment variable names
+		DatabaseURL:     getDatabaseURL(),
 		DatabaseTimeout: getDurationEnv("DATABASE_TIMEOUT", 5*time.Second),
 
 		// Authentication
@@ -148,4 +149,35 @@ func getDurationEnv(key string, defaultValue time.Duration) time.Duration {
 		}
 	}
 	return defaultValue
+}
+
+// getDatabaseURL tries multiple common environment variable names for database connection
+func getDatabaseURL() string {
+	// Try various common environment variable names
+	if url := os.Getenv("DATABASE_URL"); url != "" {
+		return url
+	}
+	if url := os.Getenv("REDIS_URL"); url != "" {
+		return url
+	}
+	if url := os.Getenv("VALKEY_URL"); url != "" {
+		// If it doesn't start with redis://, add the prefix
+		if !strings.HasPrefix(url, "redis://") {
+			return "redis://" + url
+		}
+		return url
+	}
+	if url := os.Getenv("VALKEY_URI"); url != "" {
+		return url
+	}
+	// Try building from component parts
+	if host := os.Getenv("REDIS_HOST"); host != "" {
+		port := os.Getenv("REDIS_PORT")
+		if port == "" {
+			port = "6379"
+		}
+		return "redis://" + host + ":" + port
+	}
+	// Default fallback
+	return "localhost:6379"
 }
