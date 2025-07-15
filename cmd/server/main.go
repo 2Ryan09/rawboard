@@ -36,7 +36,7 @@ func main() {
 			ReleaseStage:    env,
 			AppVersion:      "1.0.0",
 			Hostname:        "rawboard",
-			ProjectPackages: []string{"main", "rawboard"},
+			ProjectPackages: []string{"main", "github.com/2ryan09/rawboard"},
 		}))
 		fmt.Printf("✅ Bugsnag monitoring enabled\n")
 	}
