@@ -88,6 +88,7 @@ func welcomeHandler(c *gin.Context) {
 
 // testErrorHandler provides a simple error for testing error tracking
 func testErrorHandler(c *gin.Context) {
-	// Simply trigger a panic to test error tracking
+	// Return a proper 500 error and then panic to test error tracking
+	c.JSON(http.StatusInternalServerError, NewErrorResponse("Test error for Bugsnag tracking"))
 	panic("Test error for Bugsnag tracking")
 }
