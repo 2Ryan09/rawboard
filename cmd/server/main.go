@@ -91,36 +91,8 @@ func main() {
 	// Welcome endpoint with API documentation
 	router.GET("/", apiWelcomeHandler)
 
-	// API routes
-	v1 := router.Group("/api/v1")
-
-	// Initialize handlers
-	var leaderboardHandler *handlers.LeaderboardHandler
-	if leaderboardService != nil {
-		leaderboardHandler = handlers.NewLeaderboardHandler(leaderboardService)
-	}
-
-	// Public routes (no authentication required)
-	if leaderboardHandler != nil {
-		v1.GET("/games/:gameId/leaderboard", leaderboardHandler.GetLeaderboard)
-	} else {
-		v1.GET("/games/:gameId/leaderboard", func(c *gin.Context) {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "leaderboard service unavailable"})
-		})
-	}
-
-	// Protected routes (API key required)
-	protected := v1.Group("/games/:gameId")
-	protected.Use(apiKeyMiddleware)
-	{
-		if leaderboardHandler != nil {
-			protected.POST("/scores", leaderboardHandler.SubmitScore)
-		} else {
-			protected.POST("/scores", func(c *gin.Context) {
-				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "leaderboard service unavailable"})
-			})
-		}
-	}
+	// Setup all API routes using the handlers package
+	handlers.SetupRoutes(router, leaderboardService, apiKeyMiddleware)
 
 	// Start server
 	fmt.Printf("🚀 Starting Rawboard server on port 8080\n")
