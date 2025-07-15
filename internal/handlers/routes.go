@@ -18,6 +18,9 @@ func SetupRoutes(r *gin.Engine, leaderboardService *leaderboard.Service, apiKeyM
 		// Welcome endpoint (public)
 		v1.GET("/", welcomeHandler)
 
+		// Test error endpoint (public - for testing error tracking)
+		v1.GET("/test-error", testErrorHandler)
+
 		// Game routes
 		games := v1.Group("/games")
 		{
@@ -45,6 +48,7 @@ func welcomeHandler(c *gin.Context) {
 			"health":          "/health",
 			"submit_score":    "POST /api/v1/games/:gameId/scores (API key required)",
 			"get_leaderboard": "GET /api/v1/games/:gameId/leaderboard (public)",
+			"test_error":      "GET /api/v1/test-error (testing only)",
 		},
 		"authentication": gin.H{
 			"type": "API Key",
@@ -58,6 +62,7 @@ func welcomeHandler(c *gin.Context) {
 			"public_endpoints": []string{
 				"GET /api/v1/games/:gameId/leaderboard",
 				"GET /health",
+				"GET /api/v1/test-error",
 			},
 		},
 		"usage": gin.H{
@@ -79,4 +84,10 @@ func welcomeHandler(c *gin.Context) {
 			},
 		},
 	})
+}
+
+// testErrorHandler provides a simple error for testing error tracking
+func testErrorHandler(c *gin.Context) {
+	// Simply trigger a panic to test error tracking
+	panic("Test error for Bugsnag tracking")
 }
