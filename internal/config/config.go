@@ -20,9 +20,8 @@ type Config struct {
 	// Authentication configuration
 	APIKey string
 
-	// Sentry configuration
-	SentryDSN        string
-	SentrySampleRate float64
+	// Bugsnag configuration
+	BugsnagAPIKey string
 
 	// Leaderboard configuration
 	MaxScoreEntries int
@@ -44,9 +43,8 @@ func Load() (*Config, error) {
 		// Authentication
 		APIKey: getEnv("RAWBOARD_API_KEY", ""),
 
-		// Sentry defaults
-		SentryDSN:        getEnv("SENTRY_DSN", ""),
-		SentrySampleRate: getFloatEnv("SENTRY_SAMPLE_RATE", 1.0),
+		// Bugsnag defaults
+		BugsnagAPIKey: getEnv("BUGSNAG_API_KEY", ""),
 
 		// Leaderboard defaults (traditional arcade values)
 		MaxScoreEntries: getIntEnv("MAX_SCORE_ENTRIES", 10),
@@ -70,10 +68,6 @@ func (c *Config) Validate() error {
 
 	if c.DatabaseTimeout <= 0 {
 		return fmt.Errorf("DATABASE_TIMEOUT must be positive")
-	}
-
-	if c.SentrySampleRate < 0 || c.SentrySampleRate > 1 {
-		return fmt.Errorf("SENTRY_SAMPLE_RATE must be between 0 and 1")
 	}
 
 	if c.MaxScoreEntries <= 0 || c.MaxScoreEntries > 100 {
@@ -106,9 +100,9 @@ func (c *Config) HasAPIKey() bool {
 	return c.APIKey != ""
 }
 
-// HasSentry returns true if Sentry monitoring is configured
-func (c *Config) HasSentry() bool {
-	return c.SentryDSN != ""
+// HasBugsnag returns true if Bugsnag monitoring is configured
+func (c *Config) HasBugsnag() bool {
+	return c.BugsnagAPIKey != ""
 }
 
 // Helper functions for environment variable parsing

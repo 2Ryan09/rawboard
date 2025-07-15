@@ -8,8 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/getsentry/sentry-go"
-	sentrygin "github.com/getsentry/sentry-go/gin"
+	bugsnaggin "github.com/bugsnag/bugsnag-go-gin"
+	"github.com/bugsnag/bugsnag-go/v2"
 
 	"rawboard/internal/database"
 	"rawboard/internal/handlers"
@@ -18,24 +18,8 @@ import (
 )
 
 func main() {
-	// Sentry initialization
-	sentryDsn := os.Getenv("SENTRY_DSN")
-	if sentryDsn != "" {
-		env := getEnvironment()
-
-		if err := sentry.Init(sentry.ClientOptions{
-			Dsn:              sentryDsn,
-			Environment:      env,
-			EnableTracing:    true,
-			TracesSampleRate: 1.0,
-			SampleRate:       1.0,
-			ServerName:       "rawboard",
-		}); err != nil {
-			fmt.Printf("❌ Sentry initialization failed: %v\n", err)
-		} else {
-			fmt.Printf("✅ Sentry monitoring enabled\n")
-		}
-	}
+	// Bugsnag initialization
+	bugsnagAPIKey := os.Getenv("BUGSNAG_API_KEY")
 
 	// Set Gin mode based on environment
 	if getEnvironment() == "production" {
@@ -43,7 +27,19 @@ func main() {
 	}
 
 	router := gin.Default()
-	router.Use(sentrygin.New(sentrygin.Options{}))
+
+	// Add Bugsnag middleware if API key is provided
+	if bugsnagAPIKey != "" {
+		env := getEnvironment()
+		router.Use(bugsnaggin.AutoNotify(bugsnag.Configuration{
+			APIKey:          bugsnagAPIKey,
+			ReleaseStage:    env,
+			AppVersion:      "1.0.0",
+			Hostname:        "rawboard",
+			ProjectPackages: []string{"main", "rawboard"},
+		}))
+		fmt.Printf("✅ Bugsnag monitoring enabled\n")
+	}
 
 	// Initialize database
 	fmt.Printf("🔌 Attempting database connection...\n")

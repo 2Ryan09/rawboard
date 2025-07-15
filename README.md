@@ -9,7 +9,7 @@ A traditional arcade-style leaderboard service built with Go and Gin. Perfect fo
 - **API Key Authentication**: Secure score submission
 - **Redis/Valkey Storage**: Fast, reliable data persistence
 - **Health Monitoring**: Built-in health checks and observability
-- **Production Ready**: Sentry integration, rate limiting, and proper error handling
+- **Production Ready**: Bugsnag integration, rate limiting, and proper error handling
 
 ## 🚀 Quick Start
 
@@ -75,8 +75,7 @@ A traditional arcade-style leaderboard service built with Go and Gin. Perfect fo
 
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
-| `SENTRY_DSN` | Sentry error tracking DSN | _(disabled)_ | `https://xxx@sentry.io/xxx` |
-| `SENTRY_SAMPLE_RATE` | Sentry sampling rate (0.0-1.0) | `1.0` | `0.1` (10% sampling) |
+| `BUGSNAG_API_KEY` | Bugsnag error tracking API key | _(disabled)_ | `94d4ae9e78b0bc3386703e05222adcc3` |
 
 ### Leaderboard Configuration
 
@@ -108,8 +107,7 @@ DATABASE_TIMEOUT=5s
 RAWBOARD_API_KEY=dev-test-key
 
 # Monitoring (optional)
-SENTRY_DSN=
-SENTRY_SAMPLE_RATE=1.0
+BUGSNAG_API_KEY=
 
 # Leaderboard Settings
 MAX_SCORE_ENTRIES=10
@@ -131,8 +129,7 @@ DATABASE_TIMEOUT=10s
 RAWBOARD_API_KEY=your-secure-api-key-here
 
 # Monitoring
-SENTRY_DSN=https://your-sentry-dsn@sentry.io/project
-SENTRY_SAMPLE_RATE=0.1
+BUGSNAG_API_KEY=your-bugsnag-api-key-here
 
 # Leaderboard Settings
 MAX_SCORE_ENTRIES=25
@@ -274,8 +271,7 @@ CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o rawboard cmd/server/m
 - [ ] Set `ENVIRONMENT=production`
 - [ ] Configure secure `RAWBOARD_API_KEY`
 - [ ] Set up Redis/Valkey with persistence
-- [ ] Configure `SENTRY_DSN` for error tracking
-- [ ] Set appropriate `SENTRY_SAMPLE_RATE` (e.g., 0.1)
+- [ ] Configure `BUGSNAG_API_KEY` for error tracking
 - [ ] Adjust leaderboard limits if needed
 - [ ] Set up proper database backups
 - [ ] Configure reverse proxy (nginx, etc.)
