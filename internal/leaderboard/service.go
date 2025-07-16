@@ -308,6 +308,26 @@ func (s *Service) getPlayerHighScores(ctx context.Context, gameID string) (*mode
 	return &highScores, nil
 }
 
+// getRawLeaderboard gets the raw leaderboard data without triggering migration logic
+// This is used internally to avoid infinite recursion during migration
+func (s *Service) getRawLeaderboard(ctx context.Context, gameID string) (*models.Leaderboard, error) {
+	key := fmt.Sprintf("leaderboard:%s", gameID)
+
+	data, err := s.db.Get(ctx, key)
+	if err != nil {
+		return nil, fmt.Errorf("no raw leaderboard found for game: %w", err)
+	}
+
+	var leaderboard models.Leaderboard
+	// Use a decoder with pre-allocated buffer for better memory efficiency
+	decoder := json.NewDecoder(strings.NewReader(data))
+	if err := decoder.Decode(&leaderboard); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal raw leaderboard: %w", err)
+	}
+
+	return &leaderboard, nil
+}
+
 // GetPlayerStats returns comprehensive statistics for a specific player
 func (s *Service) GetPlayerStats(ctx context.Context, gameID, initials string) (*models.PlayerStats, error) {
 	initials = strings.ToUpper(strings.TrimSpace(initials))
@@ -660,8 +680,8 @@ func (s *Service) GetScoreAnalysis(ctx context.Context, gameID string, topPlayer
 // MigrateExistingLeaderboard migrates an existing leaderboard to the new storage format
 // This should be called for games that have existing leaderboards before the new system
 func (s *Service) MigrateExistingLeaderboard(ctx context.Context, gameID string) error {
-	// Get existing leaderboard using the legacy method
-	leaderboard, err := s.GetLeaderboard(ctx, gameID)
+	// Get existing leaderboard data directly without triggering migration recursion
+	leaderboard, err := s.getRawLeaderboard(ctx, gameID)
 	if err != nil {
 		// If no leaderboard exists, nothing to migrate
 		return nil
