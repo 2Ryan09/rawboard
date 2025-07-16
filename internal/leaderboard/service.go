@@ -374,6 +374,289 @@ func (s *Service) GetAllScoresForGame(ctx context.Context, gameID string) (*mode
 	return s.getAllScores(ctx, gameID)
 }
 
+// calculateAchievements determines which achievements a player has unlocked
+func (s *Service) calculateAchievements(playerScores []models.ScoreEntry, highScore int64) []models.Achievement {
+	achievements := make([]models.Achievement, 0)
+
+	if len(playerScores) == 0 {
+		return achievements
+	}
+
+	// Sort scores by timestamp for achievement calculation
+	sort.Slice(playerScores, func(i, j int) bool {
+		return playerScores[i].Timestamp.Before(playerScores[j].Timestamp)
+	})
+
+	firstScore := playerScores[0]
+
+	// First Score Achievement
+	achievements = append(achievements, models.Achievement{
+		ID:          "first_score",
+		Name:        "First Score",
+		Description: "Submit your first score",
+		UnlockedAt:  firstScore.Timestamp,
+		Icon:        "🎯",
+	})
+
+	// Score milestone achievements
+	milestones := []struct {
+		score int64
+		id    string
+		name  string
+		icon  string
+	}{
+		{1000, "score_1k", "Getting Started", "⭐"},
+		{5000, "score_5k", "Rising Star", "🌟"},
+		{10000, "score_10k", "High Achiever", "💫"},
+		{25000, "score_25k", "Score Master", "🏆"},
+		{50000, "score_50k", "Legend", "👑"},
+	}
+
+	for _, milestone := range milestones {
+		if highScore >= milestone.score {
+			// Find when this milestone was first achieved
+			var unlockedAt time.Time
+			for _, score := range playerScores {
+				if score.Score >= milestone.score {
+					unlockedAt = score.Timestamp
+					break
+				}
+			}
+
+			achievements = append(achievements, models.Achievement{
+				ID:          milestone.id,
+				Name:        milestone.name,
+				Description: fmt.Sprintf("Reach %d points", milestone.score),
+				UnlockedAt:  unlockedAt,
+				Icon:        milestone.icon,
+			})
+		}
+	}
+
+	// Dedication achievements
+	if len(playerScores) >= 5 {
+		achievements = append(achievements, models.Achievement{
+			ID:          "dedicated_player",
+			Name:        "Dedicated Player",
+			Description: "Submit 5 or more scores",
+			UnlockedAt:  playerScores[4].Timestamp, // 5th score
+			Icon:        "🎮",
+		})
+	}
+
+	if len(playerScores) >= 10 {
+		achievements = append(achievements, models.Achievement{
+			ID:          "score_hunter",
+			Name:        "Score Hunter",
+			Description: "Submit 10 or more scores",
+			UnlockedAt:  playerScores[9].Timestamp, // 10th score
+			Icon:        "🏹",
+		})
+	}
+
+	return achievements
+}
+
+// GetEnhancedPlayerStats returns comprehensive statistics with achievements
+func (s *Service) GetEnhancedPlayerStats(ctx context.Context, gameID, initials string, includeHistory bool) (*models.EnhancedPlayerStats, error) {
+	initials = strings.ToUpper(strings.TrimSpace(initials))
+	if len(initials) != 3 {
+		return nil, fmt.Errorf("initials must be exactly 3 characters")
+	}
+
+	// Get all scores to calculate statistics
+	allScores, err := s.getAllScores(ctx, gameID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get score history: %w", err)
+	}
+
+	// Filter scores for this player
+	playerScores := make([]models.ScoreEntry, 0)
+	for _, entry := range allScores.Scores {
+		if entry.Initials == initials {
+			playerScores = append(playerScores, entry)
+		}
+	}
+
+	if len(playerScores) == 0 {
+		return nil, fmt.Errorf("no scores found for player %s", initials)
+	}
+
+	// Calculate basic statistics
+	var highScore int64
+	var totalScore int64
+	var firstPlayed, lastPlayed time.Time
+
+	for i, entry := range playerScores {
+		if entry.Score > highScore {
+			highScore = entry.Score
+		}
+		totalScore += entry.Score
+
+		if i == 0 {
+			firstPlayed = entry.Timestamp
+			lastPlayed = entry.Timestamp
+		} else {
+			if entry.Timestamp.Before(firstPlayed) {
+				firstPlayed = entry.Timestamp
+			}
+			if entry.Timestamp.After(lastPlayed) {
+				lastPlayed = entry.Timestamp
+			}
+		}
+	}
+
+	averageScore := float64(totalScore) / float64(len(playerScores))
+
+	// Get current rank from leaderboard
+	var currentRank *int
+	leaderboard, err := s.GetLeaderboard(ctx, gameID)
+	if err == nil {
+		for i, entry := range leaderboard.Entries {
+			if entry.Initials == initials {
+				rank := i + 1
+				currentRank = &rank
+				break
+			}
+		}
+	}
+
+	// Calculate achievements
+	achievements := s.calculateAchievements(playerScores, highScore)
+
+	// Prepare score history if requested
+	var scoreHistory []models.ScoreEntry
+	if includeHistory {
+		scoreHistory = playerScores
+	}
+
+	return &models.EnhancedPlayerStats{
+		Initials:     initials,
+		HighScore:    highScore,
+		TotalScores:  len(playerScores),
+		LastPlayed:   lastPlayed,
+		AverageScore: averageScore,
+		FirstPlayed:  firstPlayed,
+		CurrentRank:  currentRank,
+		Achievements: achievements,
+		ScoreHistory: scoreHistory,
+	}, nil
+}
+
+// GetScoreAnalysis returns comprehensive analysis for a game
+func (s *Service) GetScoreAnalysis(ctx context.Context, gameID string, topPlayersLimit int) (*models.ScoreAnalysisResponse, error) {
+	// Get all scores
+	allScores, err := s.getAllScores(ctx, gameID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get score history: %w", err)
+	}
+
+	if len(allScores.Scores) == 0 {
+		return nil, fmt.Errorf("no scores found for game")
+	}
+
+	// Calculate basic statistics
+	totalScores := len(allScores.Scores)
+	var highestScore int64
+	var totalScore int64
+	var lastActivity time.Time
+	playerMap := make(map[string][]models.ScoreEntry)
+
+	// Group scores by player and calculate totals
+	for _, score := range allScores.Scores {
+		if score.Score > highestScore {
+			highestScore = score.Score
+		}
+		totalScore += score.Score
+
+		if score.Timestamp.After(lastActivity) {
+			lastActivity = score.Timestamp
+		}
+
+		playerMap[score.Initials] = append(playerMap[score.Initials], score)
+	}
+
+	totalPlayers := len(playerMap)
+	averageScore := float64(totalScore) / float64(totalScores)
+
+	// Get top players with enhanced stats
+	topPlayers := make([]models.EnhancedPlayerStats, 0)
+	leaderboard, _ := s.GetLeaderboard(ctx, gameID)
+
+	limit := topPlayersLimit
+	if limit <= 0 || limit > 10 {
+		limit = 10
+	}
+
+	for i, entry := range leaderboard.Entries {
+		if i >= limit {
+			break
+		}
+
+		enhancedStats, err := s.GetEnhancedPlayerStats(ctx, gameID, entry.Initials, false)
+		if err == nil {
+			topPlayers = append(topPlayers, *enhancedStats)
+		}
+	}
+
+	// Calculate score distribution
+	scoreDistribution := make(map[string]int)
+	ranges := []struct {
+		min, max int64
+		label    string
+	}{
+		{0, 999, "0-999"},
+		{1000, 4999, "1K-5K"},
+		{5000, 9999, "5K-10K"},
+		{10000, 24999, "10K-25K"},
+		{25000, 49999, "25K-50K"},
+		{50000, 999999999, "50K+"},
+	}
+
+	for _, score := range allScores.Scores {
+		for _, r := range ranges {
+			if score.Score >= r.min && score.Score <= r.max {
+				scoreDistribution[r.label]++
+				break
+			}
+		}
+	}
+
+	// Get recent achievements (last 24 hours)
+	recentAchievements := make([]models.Achievement, 0)
+	cutoff := time.Now().Add(-24 * time.Hour)
+
+	for _, playerScores := range playerMap {
+		// Get player's highest score
+		var highScore int64
+		for _, score := range playerScores {
+			if score.Score > highScore {
+				highScore = score.Score
+			}
+		}
+
+		achievements := s.calculateAchievements(playerScores, highScore)
+		for _, achievement := range achievements {
+			if achievement.UnlockedAt.After(cutoff) {
+				recentAchievements = append(recentAchievements, achievement)
+			}
+		}
+	}
+
+	return &models.ScoreAnalysisResponse{
+		GameID:             gameID,
+		TotalPlayers:       totalPlayers,
+		TotalScores:        totalScores,
+		HighestScore:       highestScore,
+		AverageScore:       averageScore,
+		LastActivity:       lastActivity,
+		TopPlayers:         topPlayers,
+		ScoreDistribution:  scoreDistribution,
+		RecentAchievements: recentAchievements,
+		Updated:            time.Now(),
+	}, nil
+}
+
 // MigrateExistingLeaderboard migrates an existing leaderboard to the new storage format
 // This should be called for games that have existing leaderboards before the new system
 func (s *Service) MigrateExistingLeaderboard(ctx context.Context, gameID string) error {

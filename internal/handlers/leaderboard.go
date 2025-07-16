@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"rawboard/internal/leaderboard"
@@ -24,35 +25,39 @@ func NewLeaderboardHandler(service *leaderboard.Service) *LeaderboardHandler {
 func (h *LeaderboardHandler) SubmitScore(c *gin.Context) {
 	gameID := c.Param("gameId")
 	if gameID == "" {
-		c.JSON(http.StatusBadRequest, NewErrorResponse("Game ID is required"))
+		c.JSON(http.StatusBadRequest, NewStandardErrorResponse(
+			ErrorCodeInvalidGameID, "Game ID is required"))
 		return
 	}
 
 	// Validate gameID format (prevent injection attacks and ensure reasonable length)
 	if len(gameID) > 50 || len(gameID) < 1 {
-		c.JSON(http.StatusBadRequest, NewErrorResponse("Game ID must be between 1 and 50 characters"))
+		c.JSON(http.StatusBadRequest, NewValidationErrorResponse(
+			"gameId", gameID, "length between 1 and 50 characters"))
 		return
 	}
 
 	var req ScoreSubmissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, NewErrorResponse("Invalid request format", map[string]interface{}{
-			"validation_error": err.Error(),
-		}))
+		c.JSON(http.StatusBadRequest, NewStandardErrorResponse(
+			ErrorCodeInvalidRequest, "Invalid request format",
+			map[string]interface{}{"validation_error": err.Error()}))
 		return
 	}
 
 	// Convert to score entry and validate
 	entry := req.ToScoreEntry()
 	if err := entry.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, NewErrorResponse(err.Error()))
+		c.JSON(http.StatusBadRequest, NewStandardErrorResponse(
+			ErrorCodeValidationFailed, err.Error()))
 		return
 	}
 
 	// Submit the score
 	err := h.service.SubmitScore(c.Request.Context(), gameID, entry.Initials, entry.Score)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, NewErrorResponse(err.Error()))
+		c.JSON(http.StatusBadRequest, NewStandardErrorResponse(
+			ErrorCodeInternalError, err.Error()))
 		return
 	}
 
@@ -93,21 +98,23 @@ func (h *LeaderboardHandler) SubmitScore(c *gin.Context) {
 func (h *LeaderboardHandler) GetLeaderboard(c *gin.Context) {
 	gameID := c.Param("gameId")
 	if gameID == "" {
-		c.JSON(http.StatusBadRequest, NewErrorResponse("Game ID is required"))
+		c.JSON(http.StatusBadRequest, NewStandardErrorResponse(
+			ErrorCodeInvalidGameID, "Game ID is required"))
 		return
 	}
 
 	// Validate gameID format
 	if len(gameID) > 50 || len(gameID) < 1 {
-		c.JSON(http.StatusBadRequest, NewErrorResponse("Game ID must be between 1 and 50 characters"))
+		c.JSON(http.StatusBadRequest, NewValidationErrorResponse(
+			"gameId", gameID, "length between 1 and 50 characters"))
 		return
 	}
 
 	leaderboard, err := h.service.GetLeaderboard(c.Request.Context(), gameID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, NewErrorResponse("No leaderboard found for this game", map[string]interface{}{
-			"game_id": gameID,
-		}))
+		c.JSON(http.StatusNotFound, NewStandardErrorResponse(
+			ErrorCodeGameNotFound, "No leaderboard found for this game",
+			map[string]interface{}{"game_id": gameID}))
 		return
 	}
 
@@ -123,34 +130,40 @@ func (h *LeaderboardHandler) GetPlayerStats(c *gin.Context) {
 	initials := c.Param("initials")
 
 	if gameID == "" {
-		c.JSON(http.StatusBadRequest, NewErrorResponse("Game ID is required"))
+		c.JSON(http.StatusBadRequest, NewStandardErrorResponse(
+			ErrorCodeInvalidGameID, "Game ID is required"))
 		return
 	}
 
 	if initials == "" {
-		c.JSON(http.StatusBadRequest, NewErrorResponse("Player initials are required"))
+		c.JSON(http.StatusBadRequest, NewStandardErrorResponse(
+			ErrorCodeInvalidInitials, "Player initials are required"))
 		return
 	}
 
 	// Validate gameID format
 	if len(gameID) > 50 || len(gameID) < 1 {
-		c.JSON(http.StatusBadRequest, NewErrorResponse("Game ID must be between 1 and 50 characters"))
+		c.JSON(http.StatusBadRequest, NewValidationErrorResponse(
+			"gameId", gameID, "length between 1 and 50 characters"))
 		return
 	}
 
 	// Validate initials format
 	initials = strings.ToUpper(strings.TrimSpace(initials))
 	if len(initials) != 3 {
-		c.JSON(http.StatusBadRequest, NewErrorResponse("Player initials must be exactly 3 characters"))
+		c.JSON(http.StatusBadRequest, NewValidationErrorResponse(
+			"initials", initials, "exactly 3 characters"))
 		return
 	}
 
 	stats, err := h.service.GetPlayerStats(c.Request.Context(), gameID, initials)
 	if err != nil {
-		c.JSON(http.StatusNotFound, NewErrorResponse("No stats found for this player", map[string]interface{}{
-			"game_id":  gameID,
-			"initials": initials,
-		}))
+		c.JSON(http.StatusNotFound, NewStandardErrorResponse(
+			ErrorCodePlayerNotFound, "No stats found for this player",
+			map[string]interface{}{
+				"game_id":  gameID,
+				"initials": initials,
+			}))
 		return
 	}
 
@@ -161,23 +174,109 @@ func (h *LeaderboardHandler) GetPlayerStats(c *gin.Context) {
 func (h *LeaderboardHandler) GetAllScores(c *gin.Context) {
 	gameID := c.Param("gameId")
 	if gameID == "" {
-		c.JSON(http.StatusBadRequest, NewErrorResponse("Game ID is required"))
+		c.JSON(http.StatusBadRequest, NewStandardErrorResponse(
+			ErrorCodeInvalidGameID, "Game ID is required"))
 		return
 	}
 
 	// Validate gameID format
 	if len(gameID) > 50 || len(gameID) < 1 {
-		c.JSON(http.StatusBadRequest, NewErrorResponse("Game ID must be between 1 and 50 characters"))
+		c.JSON(http.StatusBadRequest, NewValidationErrorResponse(
+			"gameId", gameID, "length between 1 and 50 characters"))
 		return
 	}
 
 	allScores, err := h.service.GetAllScoresForGame(c.Request.Context(), gameID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, NewErrorResponse("No score history found for this game", map[string]interface{}{
-			"game_id": gameID,
-		}))
+		c.JSON(http.StatusNotFound, NewStandardErrorResponse(
+			ErrorCodeScoreHistoryEmpty, "No score history found for this game",
+			map[string]interface{}{"game_id": gameID}))
 		return
 	}
 
 	c.JSON(http.StatusOK, allScores)
+}
+
+// GetEnhancedPlayerStats handles GET /api/v1/games/:gameId/players/:initials/stats/enhanced
+func (h *LeaderboardHandler) GetEnhancedPlayerStats(c *gin.Context) {
+	gameID := c.Param("gameId")
+	initials := c.Param("initials")
+
+	if gameID == "" {
+		c.JSON(http.StatusBadRequest, NewStandardErrorResponse(
+			ErrorCodeInvalidGameID, "Game ID is required"))
+		return
+	}
+
+	if initials == "" {
+		c.JSON(http.StatusBadRequest, NewStandardErrorResponse(
+			ErrorCodeInvalidInitials, "Player initials are required"))
+		return
+	}
+
+	// Validate gameID format
+	if len(gameID) > 50 || len(gameID) < 1 {
+		c.JSON(http.StatusBadRequest, NewValidationErrorResponse(
+			"gameId", gameID, "length between 1 and 50 characters"))
+		return
+	}
+
+	// Validate initials format
+	initials = strings.ToUpper(strings.TrimSpace(initials))
+	if len(initials) != 3 {
+		c.JSON(http.StatusBadRequest, NewValidationErrorResponse(
+			"initials", initials, "exactly 3 characters"))
+		return
+	}
+
+	// Check if score history should be included
+	includeHistory := c.Query("include_history") == "true"
+
+	stats, err := h.service.GetEnhancedPlayerStats(c.Request.Context(), gameID, initials, includeHistory)
+	if err != nil {
+		c.JSON(http.StatusNotFound, NewStandardErrorResponse(
+			ErrorCodePlayerNotFound, "No stats found for this player",
+			map[string]interface{}{
+				"game_id":  gameID,
+				"initials": initials,
+			}))
+		return
+	}
+
+	c.JSON(http.StatusOK, stats)
+}
+
+// GetScoreAnalysis handles GET /api/v1/games/:gameId/scores/analyze
+func (h *LeaderboardHandler) GetScoreAnalysis(c *gin.Context) {
+	gameID := c.Param("gameId")
+	if gameID == "" {
+		c.JSON(http.StatusBadRequest, NewStandardErrorResponse(
+			ErrorCodeInvalidGameID, "Game ID is required"))
+		return
+	}
+
+	// Validate gameID format
+	if len(gameID) > 50 || len(gameID) < 1 {
+		c.JSON(http.StatusBadRequest, NewValidationErrorResponse(
+			"gameId", gameID, "length between 1 and 50 characters"))
+		return
+	}
+
+	// Parse top players limit (default to 5, max 10)
+	topPlayersLimit := 5
+	if limitStr := c.Query("top_players"); limitStr != "" {
+		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 && limit <= 10 {
+			topPlayersLimit = limit
+		}
+	}
+
+	analysis, err := h.service.GetScoreAnalysis(c.Request.Context(), gameID, topPlayersLimit)
+	if err != nil {
+		c.JSON(http.StatusNotFound, NewStandardErrorResponse(
+			ErrorCodeScoreHistoryEmpty, "No score analysis available for this game",
+			map[string]interface{}{"game_id": gameID}))
+		return
+	}
+
+	c.JSON(http.StatusOK, analysis)
 }
