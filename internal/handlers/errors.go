@@ -27,18 +27,18 @@ type ErrorMeta struct {
 
 // Error codes for consistent API responses
 const (
-	ErrorCodeInvalidInitials    = "INVALID_INITIALS"
-	ErrorCodeInvalidScore       = "INVALID_SCORE"
-	ErrorCodeInvalidGameID      = "INVALID_GAME_ID"
-	ErrorCodeGameNotFound       = "GAME_NOT_FOUND"
-	ErrorCodePlayerNotFound     = "PLAYER_NOT_FOUND"
-	ErrorCodeScoreHistoryEmpty  = "SCORE_HISTORY_EMPTY"
-	ErrorCodeValidationFailed   = "VALIDATION_FAILED"
+	ErrorCodeInvalidInitials        = "INVALID_INITIALS"
+	ErrorCodeInvalidScore           = "INVALID_SCORE"
+	ErrorCodeInvalidGameID          = "INVALID_GAME_ID"
+	ErrorCodeGameNotFound           = "GAME_NOT_FOUND"
+	ErrorCodePlayerNotFound         = "PLAYER_NOT_FOUND"
+	ErrorCodeScoreHistoryEmpty      = "SCORE_HISTORY_EMPTY"
+	ErrorCodeValidationFailed       = "VALIDATION_FAILED"
 	ErrorCodeAuthenticationRequired = "AUTHENTICATION_REQUIRED"
-	ErrorCodeInvalidAPIKey      = "INVALID_API_KEY"
-	ErrorCodeRateLimitExceeded  = "RATE_LIMIT_EXCEEDED"
-	ErrorCodeInternalError      = "INTERNAL_ERROR"
-	ErrorCodeInvalidRequest     = "INVALID_REQUEST"
+	ErrorCodeInvalidAPIKey          = "INVALID_API_KEY"
+	ErrorCodeRateLimitExceeded      = "RATE_LIMIT_EXCEEDED"
+	ErrorCodeInternalError          = "INTERNAL_ERROR"
+	ErrorCodeInvalidRequest         = "INVALID_REQUEST"
 )
 
 // NewStandardErrorResponse creates a standardized error response

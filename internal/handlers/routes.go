@@ -20,15 +20,15 @@ func SetupRoutes(r *gin.Engine, leaderboardService *leaderboard.Service, apiKeyM
 	{
 		// Welcome endpoint (public)
 		v1.GET("/", welcomeHandler)
-		
+
 		// Health check endpoint (public)
 		v1.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
-				"status":     "healthy",
-				"service":    "rawboard-arcade",
-				"version":    "2.0.0",
-				"timestamp":  time.Now().UTC().Format(time.RFC3339),
-				"uptime":     time.Since(startTime).String(),
+				"status":    "healthy",
+				"service":   "rawboard-arcade",
+				"version":   "2.0.0",
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+				"uptime":    time.Since(startTime).String(),
 			})
 		})
 
@@ -36,10 +36,10 @@ func SetupRoutes(r *gin.Engine, leaderboardService *leaderboard.Service, apiKeyM
 		games := v1.Group("/games")
 		{
 			// Public endpoints (no authentication required)
-			games.GET("/:gameId/leaderboard", leaderboardHandler.GetLeaderboard)                          // GET /api/v1/games/:gameId/leaderboard
-			games.GET("/:gameId/players/:initials/stats", leaderboardHandler.GetPlayerStats)              // GET /api/v1/games/:gameId/players/:initials/stats
+			games.GET("/:gameId/leaderboard", leaderboardHandler.GetLeaderboard)                              // GET /api/v1/games/:gameId/leaderboard
+			games.GET("/:gameId/players/:initials/stats", leaderboardHandler.GetPlayerStats)                  // GET /api/v1/games/:gameId/players/:initials/stats
 			games.GET("/:gameId/players/:initials/stats/enhanced", leaderboardHandler.GetEnhancedPlayerStats) // GET /api/v1/games/:gameId/players/:initials/stats/enhanced
-			games.GET("/:gameId/scores/analyze", leaderboardHandler.GetScoreAnalysis)                     // GET /api/v1/games/:gameId/scores/analyze
+			games.GET("/:gameId/scores/analyze", leaderboardHandler.GetScoreAnalysis)                         // GET /api/v1/games/:gameId/scores/analyze
 
 			// Protected endpoints (API key required)
 			protected := games.Group("")
@@ -60,13 +60,13 @@ func welcomeHandler(c *gin.Context) {
 		"api_version": "v1",
 		"description": "Traditional arcade-style leaderboard service",
 		"endpoints": gin.H{
-			"health":                                "/health",
-			"submit_score":                          "POST /api/v1/games/:gameId/scores (API key required)",
-			"get_leaderboard":                       "GET /api/v1/games/:gameId/leaderboard (public)",
-			"get_player_stats":                      "GET /api/v1/games/:gameId/players/:initials/stats (public)",
-			"get_enhanced_player_stats":             "GET /api/v1/games/:gameId/players/:initials/stats/enhanced (public)",
-			"get_score_analysis":                    "GET /api/v1/games/:gameId/scores/analyze (public)",
-			"get_all_scores":                        "GET /api/v1/games/:gameId/scores/all (API key required, admin)",
+			"health":                    "/health",
+			"submit_score":              "POST /api/v1/games/:gameId/scores (API key required)",
+			"get_leaderboard":           "GET /api/v1/games/:gameId/leaderboard (public)",
+			"get_player_stats":          "GET /api/v1/games/:gameId/players/:initials/stats (public)",
+			"get_enhanced_player_stats": "GET /api/v1/games/:gameId/players/:initials/stats/enhanced (public)",
+			"get_score_analysis":        "GET /api/v1/games/:gameId/scores/analyze (public)",
+			"get_all_scores":            "GET /api/v1/games/:gameId/scores/all (API key required, admin)",
 		},
 		"authentication": gin.H{
 			"type": "API Key",

@@ -102,9 +102,9 @@ type AllScoresRecord struct {
 
 // PlayerHighScores represents a mapping of initials to their highest scores
 type PlayerHighScores struct {
-	GameID      string                 `json:"game_id" example:"pacman"`
-	HighScores  map[string]ScoreEntry  `json:"high_scores"`  // initials -> highest score
-	Updated     time.Time              `json:"updated"`      // Last update timestamp
+	GameID     string                `json:"game_id" example:"pacman"`
+	HighScores map[string]ScoreEntry `json:"high_scores"` // initials -> highest score
+	Updated    time.Time             `json:"updated"`     // Last update timestamp
 }
 
 // Achievement represents a player achievement
@@ -118,27 +118,27 @@ type Achievement struct {
 
 // EnhancedPlayerStats represents comprehensive statistics with achievements
 type EnhancedPlayerStats struct {
-	Initials      string        `json:"initials" example:"AAA"`
-	HighScore     int64         `json:"high_score" example:"15000"`
-	TotalScores   int           `json:"total_scores" example:"5"`
-	LastPlayed    time.Time     `json:"last_played" example:"2025-07-16T15:30:00Z"`
-	AverageScore  float64       `json:"average_score" example:"12000.5"`
-	FirstPlayed   time.Time     `json:"first_played" example:"2025-07-15T10:15:00Z"`
-	CurrentRank   *int          `json:"current_rank,omitempty" example:"3"`
-	Achievements  []Achievement `json:"achievements"`
-	ScoreHistory  []ScoreEntry  `json:"score_history,omitempty"` // Optional, only if requested
+	Initials     string        `json:"initials" example:"AAA"`
+	HighScore    int64         `json:"high_score" example:"15000"`
+	TotalScores  int           `json:"total_scores" example:"5"`
+	LastPlayed   time.Time     `json:"last_played" example:"2025-07-16T15:30:00Z"`
+	AverageScore float64       `json:"average_score" example:"12000.5"`
+	FirstPlayed  time.Time     `json:"first_played" example:"2025-07-15T10:15:00Z"`
+	CurrentRank  *int          `json:"current_rank,omitempty" example:"3"`
+	Achievements []Achievement `json:"achievements"`
+	ScoreHistory []ScoreEntry  `json:"score_history,omitempty"` // Optional, only if requested
 }
 
 // ScoreAnalysisResponse represents bulk analysis for a game
 type ScoreAnalysisResponse struct {
-	GameID           string                         `json:"game_id" example:"pacman"`
-	TotalPlayers     int                           `json:"total_players" example:"25"`
-	TotalScores      int                           `json:"total_scores" example:"150"`
-	HighestScore     int64                         `json:"highest_score" example:"50000"`
-	AverageScore     float64                       `json:"average_score" example:"12500.5"`
-	LastActivity     time.Time                     `json:"last_activity" example:"2025-07-16T15:30:00Z"`
-	TopPlayers       []EnhancedPlayerStats         `json:"top_players"`
-	ScoreDistribution map[string]int               `json:"score_distribution"` // e.g., "0-1000": 5, "1000-5000": 10
-	RecentAchievements []Achievement                `json:"recent_achievements"`
-	Updated          time.Time                     `json:"updated"`
+	GameID             string                `json:"game_id" example:"pacman"`
+	TotalPlayers       int                   `json:"total_players" example:"25"`
+	TotalScores        int                   `json:"total_scores" example:"150"`
+	HighestScore       int64                 `json:"highest_score" example:"50000"`
+	AverageScore       float64               `json:"average_score" example:"12500.5"`
+	LastActivity       time.Time             `json:"last_activity" example:"2025-07-16T15:30:00Z"`
+	TopPlayers         []EnhancedPlayerStats `json:"top_players"`
+	ScoreDistribution  map[string]int        `json:"score_distribution"` // e.g., "0-1000": 5, "1000-5000": 10
+	RecentAchievements []Achievement         `json:"recent_achievements"`
+	Updated            time.Time             `json:"updated"`
 }
