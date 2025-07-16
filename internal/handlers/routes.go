@@ -22,13 +22,15 @@ func SetupRoutes(r *gin.Engine, leaderboardService *leaderboard.Service, apiKeyM
 		games := v1.Group("/games")
 		{
 			// Public endpoints (no authentication required)
-			games.GET("/:gameId/leaderboard", leaderboardHandler.GetLeaderboard) // GET /api/v1/games/:gameId/leaderboard
+			games.GET("/:gameId/leaderboard", leaderboardHandler.GetLeaderboard)             // GET /api/v1/games/:gameId/leaderboard
+			games.GET("/:gameId/players/:initials/stats", leaderboardHandler.GetPlayerStats) // GET /api/v1/games/:gameId/players/:initials/stats
 
 			// Protected endpoints (API key required)
 			protected := games.Group("")
 			protected.Use(apiKeyMiddleware)
 			{
-				protected.POST("/:gameId/scores", leaderboardHandler.SubmitScore) // POST /api/v1/games/:gameId/scores
+				protected.POST("/:gameId/scores", leaderboardHandler.SubmitScore)     // POST /api/v1/games/:gameId/scores
+				protected.GET("/:gameId/scores/all", leaderboardHandler.GetAllScores) // GET /api/v1/games/:gameId/scores/all (admin)
 			}
 		}
 	}
@@ -42,9 +44,11 @@ func welcomeHandler(c *gin.Context) {
 		"api_version": "v1",
 		"description": "Traditional arcade-style leaderboard service",
 		"endpoints": gin.H{
-			"health":          "/health",
-			"submit_score":    "POST /api/v1/games/:gameId/scores (API key required)",
-			"get_leaderboard": "GET /api/v1/games/:gameId/leaderboard (public)",
+			"health":           "/health",
+			"submit_score":     "POST /api/v1/games/:gameId/scores (API key required)",
+			"get_leaderboard":  "GET /api/v1/games/:gameId/leaderboard (public)",
+			"get_player_stats": "GET /api/v1/games/:gameId/players/:initials/stats (public)",
+			"get_all_scores":   "GET /api/v1/games/:gameId/scores/all (API key required, admin)",
 		},
 		"authentication": gin.H{
 			"type": "API Key",
@@ -54,9 +58,11 @@ func welcomeHandler(c *gin.Context) {
 			},
 			"required_for": []string{
 				"POST /api/v1/games/:gameId/scores",
+				"GET /api/v1/games/:gameId/scores/all",
 			},
 			"public_endpoints": []string{
 				"GET /api/v1/games/:gameId/leaderboard",
+				"GET /api/v1/games/:gameId/players/:initials/stats",
 				"GET /health",
 			},
 		},

@@ -13,7 +13,9 @@ The GitHub Actions workflow provides:
 ## 🔧 Pipeline Jobs
 
 ### 1. **Test Job** (`test`)
+
 Runs on every push and pull request:
+
 - ✅ Go code formatting check
 - ✅ Static analysis with `go vet`
 - ✅ Vulnerability scanning with `govulncheck`
@@ -21,7 +23,9 @@ Runs on every push and pull request:
 - ✅ Database integration tests (with Redis)
 
 ### 2. **Docker Job** (`docker`)
+
 Runs only on pushes to `main` branch after tests pass:
+
 - 🐳 Builds Docker image
 - 🏷️ Tags with multiple versions
 - 📦 Pushes to Docker Hub repository: `2ryan09/rawboard`
@@ -33,6 +37,7 @@ To enable the full CI/CD pipeline, you **must** configure these secrets in your 
 ### Setting Up Secrets
 
 1. **Navigate to Repository Settings**
+
    ```
    GitHub Repository → Settings → Secrets and variables → Actions
    ```
@@ -41,9 +46,9 @@ To enable the full CI/CD pipeline, you **must** configure these secrets in your 
 
 ### Required Secrets
 
-| Secret Name | Description | Where to Get It | Example Format |
-|-------------|-------------|-----------------|----------------|
-| `DOCKER_USERNAME` | Your Docker Hub username | Docker Hub account | `2ryan09` |
+| Secret Name       | Description                      | Where to Get It                       | Example Format                   |
+| ----------------- | -------------------------------- | ------------------------------------- | -------------------------------- |
+| `DOCKER_USERNAME` | Your Docker Hub username         | Docker Hub account                    | `2ryan09`                        |
 | `DOCKER_PASSWORD` | Docker Hub Personal Access Token | Docker Hub → Security → Access Tokens | `dckr_pat_xxxxxxxxxxxxxxxxxxxxx` |
 
 ## 🐳 Docker Hub Setup
@@ -55,11 +60,12 @@ To enable the full CI/CD pipeline, you **must** configure these secrets in your 
 3. **Click "New Access Token"**
    - **Token description**: `GitHub Actions - Rawboard`
    - **Access permissions**: `Public Repo Read/Write`
-4. **Generate and copy the token** ⚠️ *You'll only see it once!*
+4. **Generate and copy the token** ⚠️ _You'll only see it once!_
 
 ### Step 2: Create Docker Hub Repository
 
 Ensure you have a repository named `rawboard` in your Docker Hub account:
+
 - Repository URL: `https://hub.docker.com/r/2ryan09/rawboard`
 - Visibility: Public (recommended) or Private
 
@@ -67,20 +73,22 @@ Ensure you have a repository named `rawboard` in your Docker Hub account:
 
 The pipeline automatically creates multiple tags for better version management:
 
-| Tag Format | When Created | Example | Use Case |
-|------------|--------------|---------|----------|
-| `latest` | Every push to `main` | `2ryan09/rawboard:latest` | Production deployments |
-| `main` | Every push to `main` | `2ryan09/rawboard:main` | Branch-specific |
+| Tag Format   | When Created         | Example                         | Use Case                 |
+| ------------ | -------------------- | ------------------------------- | ------------------------ |
+| `latest`     | Every push to `main` | `2ryan09/rawboard:latest`       | Production deployments   |
+| `main`       | Every push to `main` | `2ryan09/rawboard:main`         | Branch-specific          |
 | `main-<sha>` | Every push to `main` | `2ryan09/rawboard:main-a1b2c3d` | Specific commit tracking |
 
 ## 🚦 Pipeline Triggers
 
 ### When Tests Run:
+
 - ✅ Push to `main` branch
-- ✅ Push to `develop` branch  
+- ✅ Push to `develop` branch
 - ✅ Pull requests to `main` branch
 
 ### When Docker Images Are Built:
+
 - ✅ Push to `main` branch **only** (after tests pass)
 - ❌ Pull requests (security - no images built)
 - ❌ Push to other branches
@@ -98,21 +106,27 @@ You can monitor pipeline status:
 ### Common Issues
 
 **❌ Docker login failed**
+
 ```
 Error: Error response from daemon: unauthorized
 ```
+
 **Solution**: Check `DOCKER_USERNAME` and `DOCKER_PASSWORD` secrets are set correctly
 
 **❌ Docker push denied**
+
 ```
 Error: denied: requested access to the resource is denied
 ```
+
 **Solution**: Verify Docker Hub repository exists and PAT has write permissions
 
 **❌ Tests failing**
+
 ```
 Error: Database connection failed
 ```
+
 **Solution**: Check if Redis service is properly configured in workflow
 
 ### Secret Validation
@@ -129,12 +143,14 @@ To verify secrets are working:
 ## 🛡️ Security Best Practices
 
 ### Docker Hub PAT Security:
+
 - ✅ Use Personal Access Tokens (not passwords)
 - ✅ Scope tokens to minimum required permissions
 - ✅ Rotate tokens regularly (every 6-12 months)
 - ✅ Monitor token usage in Docker Hub logs
 
 ### GitHub Secrets Security:
+
 - ✅ Never log or echo secret values
 - ✅ Use repository secrets (not environment secrets) for this project
 - ✅ Review secret access periodically
@@ -144,6 +160,7 @@ To verify secrets are working:
 Once configured, the pipeline works automatically:
 
 ### For Development:
+
 ```bash
 # Create feature branch
 git checkout -b feature/new-feature
@@ -155,6 +172,7 @@ git push origin feature/new-feature
 ```
 
 ### For Production:
+
 ```bash
 # Merge to main branch → Tests + Docker build + Push
 git checkout main
@@ -163,6 +181,7 @@ git push origin main
 ```
 
 ### Using the Docker Image:
+
 ```bash
 # Pull latest version
 docker pull 2ryan09/rawboard:latest

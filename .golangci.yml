@@ -8,35 +8,35 @@ run:
 linters:
   enable:
     # Built-in Go tools
-    - gofmt          # Format code
-    - goimports      # Format imports
-    - govet          # Go vet
+    - gofmt # Format code
+    - goimports # Format imports
+    - govet # Go vet
 
     # Code quality
-    - errcheck       # Check for unhandled errors
-    - gosimple       # Simplify code
-    - ineffassign    # Detect ineffectual assignments
-    - staticcheck    # Advanced static analysis
-    - unused         # Find unused code
-    - misspell       # Fix spelling mistakes
+    - errcheck # Check for unhandled errors
+    - gosimple # Simplify code
+    - ineffassign # Detect ineffectual assignments
+    - staticcheck # Advanced static analysis
+    - unused # Find unused code
+    - misspell # Fix spelling mistakes
 
     # Style and best practices
-    - gci            # Control Go package import order and make it always deterministic
-    - revive         # Replacement for golint
-    - stylecheck     # Style checker
+    - gci # Control Go package import order and make it always deterministic
+    - revive # Replacement for golint
+    - stylecheck # Style checker
 
     # Security
-    - gosec          # Security issues
+    - gosec # Security issues
 
     # Performance
-    - prealloc       # Suggest slice preallocation
+    - prealloc # Suggest slice preallocation
 
 linters-settings:
   gci:
     sections:
-      - standard          # Standard library
-      - default          # Third-party packages
-      - localmodule      # Local project packages
+      - standard # Standard library
+      - default # Third-party packages
+      - localmodule # Local project packages
     skip-generated: true
 
   revive:

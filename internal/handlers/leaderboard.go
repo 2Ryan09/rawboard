@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"rawboard/internal/leaderboard"
 	"rawboard/internal/models"
@@ -66,15 +67,19 @@ func (h *LeaderboardHandler) SubmitScore(c *gin.Context) {
 		return
 	}
 
-	// Find the rank of the submitted score
+	// Find the rank of the submitted score or the player's current position
 	var rank *int
 	for i, scoreEntry := range leaderboard.Entries {
-		if scoreEntry.Initials == entry.Initials && scoreEntry.Score == entry.Score {
+		if scoreEntry.Initials == entry.Initials {
+			// Player is on the leaderboard - return their current rank
+			// This could be either the just-submitted score (if it's their new high score)
+			// or their existing high score (if this submission was lower)
 			rankValue := i + 1
 			rank = &rankValue
 			break
 		}
 	}
+	// If rank is still nil, the player is not in the top 10
 
 	c.JSON(http.StatusCreated, ScoreSubmissionResponse{
 		Message:     "Score submitted successfully",
@@ -110,4 +115,69 @@ func (h *LeaderboardHandler) GetLeaderboard(c *gin.Context) {
 	// Ensure it's typed as models.Leaderboard for documentation
 	var response *models.Leaderboard = leaderboard
 	c.JSON(http.StatusOK, response)
+}
+
+// GetPlayerStats handles GET /api/v1/games/:gameId/players/:initials/stats
+func (h *LeaderboardHandler) GetPlayerStats(c *gin.Context) {
+	gameID := c.Param("gameId")
+	initials := c.Param("initials")
+
+	if gameID == "" {
+		c.JSON(http.StatusBadRequest, NewErrorResponse("Game ID is required"))
+		return
+	}
+
+	if initials == "" {
+		c.JSON(http.StatusBadRequest, NewErrorResponse("Player initials are required"))
+		return
+	}
+
+	// Validate gameID format
+	if len(gameID) > 50 || len(gameID) < 1 {
+		c.JSON(http.StatusBadRequest, NewErrorResponse("Game ID must be between 1 and 50 characters"))
+		return
+	}
+
+	// Validate initials format
+	initials = strings.ToUpper(strings.TrimSpace(initials))
+	if len(initials) != 3 {
+		c.JSON(http.StatusBadRequest, NewErrorResponse("Player initials must be exactly 3 characters"))
+		return
+	}
+
+	stats, err := h.service.GetPlayerStats(c.Request.Context(), gameID, initials)
+	if err != nil {
+		c.JSON(http.StatusNotFound, NewErrorResponse("No stats found for this player", map[string]interface{}{
+			"game_id":  gameID,
+			"initials": initials,
+		}))
+		return
+	}
+
+	c.JSON(http.StatusOK, stats)
+}
+
+// GetAllScores handles GET /api/v1/games/:gameId/scores/all (admin endpoint)
+func (h *LeaderboardHandler) GetAllScores(c *gin.Context) {
+	gameID := c.Param("gameId")
+	if gameID == "" {
+		c.JSON(http.StatusBadRequest, NewErrorResponse("Game ID is required"))
+		return
+	}
+
+	// Validate gameID format
+	if len(gameID) > 50 || len(gameID) < 1 {
+		c.JSON(http.StatusBadRequest, NewErrorResponse("Game ID must be between 1 and 50 characters"))
+		return
+	}
+
+	allScores, err := h.service.GetAllScoresForGame(c.Request.Context(), gameID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, NewErrorResponse("No score history found for this game", map[string]interface{}{
+			"game_id": gameID,
+		}))
+		return
+	}
+
+	c.JSON(http.StatusOK, allScores)
 }

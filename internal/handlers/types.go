@@ -78,17 +78,35 @@ func NewWelcomeResponse() *WelcomeResponse {
 		Message: "🎮 Welcome to Rawboard - Traditional Arcade Leaderboard Service",
 		Version: "1.0.0",
 		Endpoints: map[string]interface{}{
-			"health":                          "GET /health",
-			"get_leaderboard":                 "GET /api/v1/games/{gameId}/leaderboard",
-			"submit_score (requires API key)": "POST /api/v1/games/{gameId}/scores",
+			"health":                            "GET /health",
+			"get_leaderboard":                   "GET /api/v1/games/{gameId}/leaderboard",
+			"submit_score (requires API key)":   "POST /api/v1/games/{gameId}/scores",
+			"get_player_stats":                  "GET /api/v1/games/{gameId}/players/{initials}/stats",
+			"get_all_scores (requires API key)": "GET /api/v1/games/{gameId}/scores/all",
 		},
 		Features: []string{
 			"3-character initials (traditional arcade style)",
-			"Top-10 score tracking",
+			"Top-10 score tracking with highest score per player",
+			"Complete score history tracking",
+			"Individual player statistics",
 			"API key authentication for score submission",
 			"Rate limiting and request timeouts",
 			"Real-time leaderboard updates",
 		},
 		ArcadeSpirit: "🕹️ Bringing back the classic arcade experience!",
 	}
+}
+
+// PlayerStatsResponse represents the response when getting player statistics
+type PlayerStatsResponse struct {
+	*models.PlayerStats
+	Rank *int `json:"rank,omitempty" example:"3"` // Current rank in leaderboard (1-10), nil if not in top 10
+}
+
+// AllScoresResponse represents the response when getting all scores for a game
+type AllScoresResponse struct {
+	*models.AllScoresRecord
+	TotalPlayers int     `json:"total_players" example:"25"`      // Number of unique players
+	HighestScore int64   `json:"highest_score" example:"50000"`   // Highest score across all players
+	AverageScore float64 `json:"average_score" example:"12500.5"` // Average score across all submissions
 }

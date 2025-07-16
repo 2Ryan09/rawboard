@@ -82,3 +82,27 @@ func (lb *Leaderboard) MarshalJSON() ([]byte, error) {
 	type leaderboardAlias Leaderboard
 	return json.Marshal((*leaderboardAlias)(lb))
 }
+
+// PlayerStats represents comprehensive statistics for a player (initials)
+type PlayerStats struct {
+	Initials     string    `json:"initials" example:"AAA"`                      // Three letter initials
+	HighScore    int64     `json:"high_score" example:"15000"`                  // Player's highest score
+	TotalScores  int       `json:"total_scores" example:"5"`                    // Number of scores submitted
+	LastPlayed   time.Time `json:"last_played" example:"2025-07-16T15:30:00Z"`  // Last time this player submitted a score
+	AverageScore float64   `json:"average_score" example:"12000.5"`             // Average of all scores
+	FirstPlayed  time.Time `json:"first_played" example:"2025-07-15T10:15:00Z"` // First time this player submitted a score
+}
+
+// AllScoresRecord represents the complete score history for a game
+type AllScoresRecord struct {
+	GameID  string       `json:"game_id" example:"pacman"`
+	Scores  []ScoreEntry `json:"scores"`  // All scores ever submitted
+	Updated time.Time    `json:"updated"` // Last update timestamp
+}
+
+// PlayerHighScores represents a mapping of initials to their highest scores
+type PlayerHighScores struct {
+	GameID     string                `json:"game_id" example:"pacman"`
+	HighScores map[string]ScoreEntry `json:"high_scores"` // initials -> highest score
+	Updated    time.Time             `json:"updated"`     // Last update timestamp
+}
